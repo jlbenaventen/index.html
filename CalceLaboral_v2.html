@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CalceLaboral.cl — Encuentra tu empresa ideal</title>
+<meta name="description" content="Explora más de 200 empresas chilenas medianas y grandes. Filtra por industria, zona y calcula tu calce según tus competencias.">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0f1f3d; --blue: #1e3a6e; --accent: #2563eb;
+    --green: #059669; --amber: #d97706;
+    --gray-light: #e2e8f0; --text: #1e293b; --text-muted: #64748b;
+    --light: #f0f4ff; --radius: 10px; --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --white: #ffffff;
+  }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8fafc; color: var(--text); }
+
+  /* ─── HERO ─── */
+  .hero { background: linear-gradient(135deg, #0a1628 0%, #0f1f3d 40%, #1a3a6e 70%, #1a5fa8 100%); padding: 3.5rem 1.5rem 2.5rem; text-align: center; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234a9edd' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+  .hero-badge { display: inline-block; background: rgba(37,99,235,0.3); border: 1px solid rgba(147,197,253,0.3); color: #93c5fd; font-size: 0.75rem; font-weight: 600; padding: 4px 14px; border-radius: 99px; margin-bottom: 1.25rem; letter-spacing: 0.06em; text-transform: uppercase; position: relative; }
+  .hero h1 { font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 800; color: white; line-height: 1.15; margin-bottom: 1rem; position: relative; }
+  .hero h1 span { color: #60a5fa; }
+  .hero p { font-size: 1rem; color: #bfdbfe; max-width: 520px; margin: 0 auto 2rem; line-height: 1.65; position: relative; }
+  .hero-stats { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; position: relative; }
+  .hero-stat { text-align: center; }
+  .hero-stat .num { font-size: 1.75rem; font-weight: 800; color: white; display: block; }
+  .hero-stat .lbl { font-size: 0.72rem; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.06em; }
+  .hero-cta { margin-top: 2rem; position: relative; }
+  .btn-hero { display: inline-block; background: #2563eb; color: white; padding: 13px 32px; border-radius: 10px; font-size: 0.95rem; font-weight: 700; text-decoration: none; border: none; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+  .btn-hero:hover { background: #1d4ed8; transform: translateY(-1px); }
+  .btn-hero-sec { display: inline-block; background: rgba(255,255,255,0.1); color: white; padding: 13px 24px; border-radius: 10px; font-size: 0.9rem; font-weight: 500; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; margin-left: 10px; transition: background 0.2s; }
+  .btn-hero-sec:hover { background: rgba(255,255,255,0.18); }
+
+  /* ─── FEATURES ─── */
+  .features { background: white; padding: 2.5rem 1.5rem; border-bottom: 1px solid var(--gray-light); }
+  .features-inner { max-width: 900px; margin: 0 auto; }
+  .features-title { text-align: center; font-size: 1.15rem; font-weight: 700; color: var(--navy); margin-bottom: 1.5rem; }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+  .feature-card { background: var(--light); border-radius: var(--radius); padding: 1.1rem; }
+  .feature-icon { font-size: 1.4rem; margin-bottom: 8px; }
+  .feature-title { font-size: 0.88rem; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .feature-desc { font-size: 0.76rem; color: var(--text-muted); line-height: 1.5; }
+
+  /* ─── HOW IT WORKS ─── */
+  .how { background: #f8fafc; padding: 2rem 1.5rem; border-bottom: 1px solid var(--gray-light); }
+  .how-inner { max-width: 700px; margin: 0 auto; text-align: center; }
+  .how h2 { font-size: 1.1rem; font-weight: 700; color: var(--navy); margin-bottom: 1.25rem; }
+  .steps { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+  .step { flex: 1; min-width: 150px; max-width: 180px; text-align: center; }
+  .step-num { width: 36px; height: 36px; background: var(--accent); color: white; border-radius: 50%; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; }
+  .step-title { font-size: 0.82rem; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+  .step-desc { font-size: 0.73rem; color: var(--text-muted); line-height: 1.45; }
+
+  /* ─── APP ─── */
+  .app-section { padding: 0; }
+  .app-header { background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 60%, #1a5fa8 100%); padding: 1.25rem 1.5rem; }
+  .app-header h2 { font-size: 1.1rem; font-weight: 700; color: white; margin-bottom: 3px; }
+  .app-header p { font-size: 0.78rem; color: #93c5fd; }
+  .stats-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.75rem; }
+  .stat { background: rgba(255,255,255,0.12); border-radius: 8px; padding: 5px 12px; }
+  .stat span { font-size: 0.95rem; font-weight: 700; color: white; }
+  .stat label { font-size: 0.63rem; color: #93c5fd; display: block; }
+
+  /* ─── MODAL ─── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: white; border-radius: 14px; padding: 1.75rem; max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .modal h2 { font-size: 1.1rem; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
+  .modal .modal-sub { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.25rem; }
+  .modal-section { margin-bottom: 1.1rem; }
+  .modal-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--navy); margin-bottom: 7px; display: block; }
+  .mchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mchip { padding: 5px 11px; border-radius: 99px; font-size: 0.73rem; font-weight: 500; cursor: pointer; border: 1.5px solid var(--gray-light); background: white; color: var(--text-muted); transition: all 0.15s; user-select: none; }
+  .mchip:hover { border-color: var(--accent); color: var(--accent); }
+  .mchip.sc { background: #dcfce7; border-color: #059669; color: #065f46; }
+  .mchip.sp { background: #dbeafe; border-color: #2563eb; color: #1e40af; }
+  .mchip.sk { background: #fef3c7; border-color: #d97706; color: #92400e; }
+  .modal-name { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-light); border-radius: 8px; font-size: 0.85rem; outline: none; margin-bottom: 4px; }
+  .modal-name:focus { border-color: var(--accent); }
+  .btn-primary { width: 100%; padding: 11px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-top: 0.5rem; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-secondary { padding: 7px 14px; background: var(--gray-light); border: none; border-radius: 8px; font-size: 0.78rem; cursor: pointer; color: var(--text); }
+
+  /* ─── FILTROS ─── */
+  .filters-panel { background: white; border-bottom: 1px solid var(--gray-light); box-shadow: var(--shadow); position: sticky; top: 0; z-index: 20; }
+  .filters-main { padding: 0.7rem 1.5rem; display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .search-box { flex: 1; min-width: 160px; position: relative; }
+  .search-box input { width: 100%; padding: 7px 10px 7px 30px; border: 1.5px solid var(--gray-light); border-radius: 8px; font-size: 0.8rem; outline: none; }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box::before { content: '🔍'; position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 0.73rem; }
+  select { padding: 7px 9px; border: 1.5px solid var(--gray-light); border-radius: 8px; font-size: 0.78rem; background: white; outline: none; cursor: pointer; }
+  select:focus { border-color: var(--accent); }
+  .count-badge { background: var(--accent); color: white; padding: 4px 10px; border-radius: 99px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+  .profile-btn { padding: 7px 13px; background: var(--navy); color: white; border: none; border-radius: 8px; font-size: 0.76rem; cursor: pointer; font-weight: 500; }
+  .profile-btn:hover { background: var(--blue); }
+  .clear-btn { padding: 6px 11px; background: var(--gray-light); border: none; border-radius: 8px; font-size: 0.76rem; cursor: pointer; }
+  .profile-banner { background: #eff6ff; border-bottom: 1px solid #bfdbfe; padding: 5px 1.5rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .profile-banner.hidden { display: none; }
+  .pb-name { font-size: 0.78rem; font-weight: 700; color: var(--navy); white-space: nowrap; }
+  .pb-chips { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+  .pb-chip { font-size: 0.62rem; padding: 2px 6px; border-radius: 99px; font-weight: 600; }
+  .pb-c { background: #dcfce7; color: #065f46; }
+  .pb-p { background: #dbeafe; color: #1e40af; }
+  .pb-k { background: #fef3c7; color: #92400e; }
+
+  /* ─── GRID ─── */
+  .grid-container { padding: 1rem 1.5rem 3rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 10px; }
+  .card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 13px; border: 1px solid var(--gray-light); transition: transform 0.15s, box-shadow 0.15s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+  .card.top-match { border: 2px solid #6ee7b7; }
+  .card.good-match { border: 1.5px solid #93c5fd; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 7px; }
+  .card-name { font-size: 0.9rem; font-weight: 700; color: var(--navy); line-height: 1.3; flex: 1; }
+  .itag { font-size: 0.61rem; font-weight: 600; padding: 2px 7px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
+  .card-product { font-size: 0.74rem; color: var(--text-muted); margin-bottom: 7px; line-height: 1.4; }
+  .card-meta { display: flex; gap: 5px; flex-wrap: wrap; }
+  .ctag { font-size: 0.63rem; padding: 2px 6px; border-radius: 6px; background: var(--light); color: var(--blue); font-weight: 500; }
+  .match-section { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--gray-light); }
+  .match-badges { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 5px; }
+  .mb { font-size: 0.6rem; padding: 2px 5px; border-radius: 5px; font-weight: 600; }
+  .mb-g { background: #dcfce7; color: #166534; }
+  .mb-b { background: #dbeafe; color: #1e40af; }
+  .mb-gray { background: #f1f5f9; color: #64748b; }
+  .score-row { display: flex; align-items: center; gap: 7px; }
+  .score-label { font-size: 0.62rem; color: var(--text-muted); white-space: nowrap; }
+  .score-bar-bg { flex: 1; height: 5px; background: var(--gray-light); border-radius: 99px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .fill-h { background: linear-gradient(90deg,#059669,#34d399); }
+  .fill-m { background: linear-gradient(90deg,#d97706,#fbbf24); }
+  .fill-l { background: linear-gradient(90deg,#94a3b8,#cbd5e1); }
+  .score-num { font-size: 0.65rem; font-weight: 700; min-width: 26px; text-align: right; }
+  .sh { color: var(--green); } .sm { color: var(--amber); } .sl { color: var(--text-muted); }
+
+  /* INDUSTRIA */
+  .ti{background:#dbeafe;color:#1e40af}.tq{background:#dcfce7;color:#166534}.ta{background:#d1fae5;color:#065f46}
+  .te{background:#fef3c7;color:#92400e}.tm{background:#fce7f3;color:#9d174d}.tc{background:#ede9fe;color:#4c1d95}
+  .tal{background:#ffedd5;color:#9a3412}.tr{background:#fef9c3;color:#713f12}.tl{background:#e0f2fe;color:#0c4a6e}
+  .tt{background:#f0fdf4;color:#14532d}.ts{background:#fdf4ff;color:#701a75}.tf{background:#fff1f2;color:#9f1239}
+  .tfor{background:#ecfdf5;color:#064e3b}.tag{background:#f7fee7;color:#3f6212}.tp{background:#e0f7fa;color:#00695c}
+  .tae{background:#e0f2fe;color:#0369a1}.tpa{background:#faf5eb;color:#78350f}.ttr{background:#e2e8f0;color:#1e293b}
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); display: none; }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+  /* FOOTER */
+  footer { background: var(--navy); color: #93c5fd; text-align: center; padding: 1.5rem; font-size: 0.78rem; }
+  footer strong { color: white; }
+
+  @media (max-width:600px) {
+    .grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 1.6rem; }
+    .btn-hero-sec { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- MODAL PERFIL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>👤 Crea tu perfil de búsqueda</h2>
+    <p class="modal-sub">Selecciona tus competencias y preferencias para calcular el calce con cada empresa. Puedes cambiar tu perfil en cualquier momento.</p>
+    <div class="modal-section">
+      <label class="modal-label">Tu nombre (opcional)</label>
+      <input class="modal-name" id="user-name" placeholder="Ej: María González">
+    </div>
+    <div class="modal-section">
+      <label class="modal-label">⚙️ Mis competencias principales</label>
+      <div class="mchips">
+        <span class="mchip" data-g="comp" data-v="sap">SAP / ERP</span>
+        <span class="mchip" data-g="comp" data-v="procesos">Mejora de procesos</span>
+        <span class="mchip" data-g="comp" data-v="contratos">Contratos y proveedores</span>
+        <span class="mchip" data-g="comp" data-v="liderazgo">Liderazgo de equipos</span>
+        <span class="mchip" data-g="comp" data-v="regional">Operación regional / Latam</span>
+        <span class="mchip" data-g="comp" data-v="finanzas">Control financiero</span>
+        <span class="mchip" data-g="comp" data-v="digital">Transformación digital</span>
+        <span class="mchip" data-g="comp" data-v="comercial">Gestión comercial / Ventas</span>
+        <span class="mchip" data-g="comp" data-v="rrhh">Gestión de personas / RRHH</span>
+        <span class="mchip" data-g="comp" data-v="proyectos">Gestión de proyectos</span>
+        <span class="mchip" data-g="comp" data-v="logistica">Logística y distribución</span>
+        <span class="mchip" data-g="comp" data-v="produccion">Producción / Manufactura</span>
+        <span class="mchip" data-g="comp" data-v="calidad">Calidad e ISO</span>
+        <span class="mchip" data-g="comp" data-v="hse">Seguridad HSE</span>
+      </div>
+    </div>
+    <div class="modal-section">
+      <label class="modal-label">🎯 Lo que me importa en un trabajo</label>
+      <div class="mchips">
+        <span class="mchip" data-g="pref" data-v="impacto">Impacto directo en resultados</span>
+        <span class="mchip" data-g="pref" data-v="autonomia">Autonomía y decisiones propias</span>
+        <span class="mchip" data-g="pref" data-v="estabilidad">Estabilidad laboral</span>
+        <span class="mchip" data-g="pref" data-v="desafio">Desafío y cambio constante</span>
+        <span class="mchip" data-g="pref" data-v="crecimiento">Crecimiento y carrera</span>
+        <span class="mchip" data-g="pref" data-v="proposito">Propósito e impacto social</span>
+        <span class="mchip" data-g="pref" data-v="innovacion">Innovación y tecnología</span>
+        <span class="mchip" data-g="pref" data-v="internacional">Exposición internacional</span>
+      </div>
+    </div>
+    <div class="modal-section">
+      <label class="modal-label">🏢 Cultura que prefiero</label>
+      <div class="mchips">
+        <span class="mchip" data-g="cult" data-v="familiar">Empresa familiar profesionalizada</span>
+        <span class="mchip" data-g="cult" data-v="corporativa">Corporación grande</span>
+        <span class="mchip" data-g="cult" data-v="startup">Startup / Scale-up ágil</span>
+        <span class="mchip" data-g="cult" data-v="estatal">Empresa pública / Estatal</span>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveProfile()">Ver empresas que calzan conmigo →</button>
+    <div style="text-align:center;margin-top:10px">
+      <button class="btn-secondary" onclick="skipProfile()">Explorar sin perfil</button>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🇨🇱 Chile · 2026</div>
+  <h1>Encuentra tu<br><span>empresa ideal</span> en Chile</h1>
+  <p>Explora más de 200 empresas medianas y grandes, filtra por industria y zona, y descubre cuáles calzan con tus competencias y preferencias.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><span class="num">200+</span><span class="lbl">Empresas</span></div>
+    <div class="hero-stat"><span class="num">20</span><span class="lbl">Industrias</span></div>
+    <div class="hero-stat"><span class="num">6</span><span class="lbl">Zonas RM</span></div>
+    <div class="hero-stat"><span class="num">100%</span><span class="lbl">Gratis</span></div>
+  </div>
+  <div class="hero-cta">
+    <button class="btn-hero" onclick="document.getElementById('app').scrollIntoView({behavior:'smooth'})">Explorar empresas ↓</button>
+    <button class="btn-hero-sec" onclick="document.getElementById('modal').classList.remove('hidden')">Crear mi perfil</button>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="features-inner">
+    <div class="features-title">¿Qué puedes hacer aquí?</div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Calce personalizado</div>
+        <div class="feature-desc">Ingresa tus competencias y preferencias. El sistema calcula qué tan bien calzas con cada empresa.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-title">Búsqueda inteligente</div>
+        <div class="feature-desc">Filtra por industria, zona de Santiago, cultura de empresa y nivel de calce.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏭</div>
+        <div class="feature-title">20 industrias</div>
+        <div class="feature-desc">Desde energía, logística y química hasta tecnología, forestal, retail y aviación.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📍</div>
+        <div class="feature-title">Filtro por zona</div>
+        <div class="feature-desc">Norte, Poniente, Centro, Oriente o Sur de Santiago. Encuentra empresas cerca de ti.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <div class="how-inner">
+    <h2>¿Cómo funciona?</h2>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-title">Crea tu perfil</div><div class="step-desc">Selecciona tus competencias, lo que te importa y el tipo de empresa que prefieres.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-title">Explora</div><div class="step-desc">El sistema ordena las empresas de mayor a menor calce contigo automáticamente.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-title">Filtra</div><div class="step-desc">Usa los filtros de industria, zona y tipo de empresa para afinar tu búsqueda.</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-title">Decide</div><div class="step-desc">Identifica tus empresas target y da el siguiente paso: buscar la oferta y postular.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-header">
+    <h2>🏢 Explorador de Empresas</h2>
+    <p>Ordenadas por calce con tu perfil · haz clic en "Mi perfil" para personalizarlo</p>
+    <div class="stats-row">
+      <div class="stat"><span id="total-count">0</span><label>empresas</label></div>
+      <div class="stat"><span id="industry-count">0</span><label>industrias</label></div>
+      <div class="stat"><span id="filtered-count">0</span><label>mostrando</label></div>
+    </div>
+  </div>
+
+  <div class="filters-panel">
+    <div class="filters-main">
+      <div class="search-box"><input type="text" id="search" placeholder="Buscar empresa, producto, ciudad..."></div>
+      <select id="industry-filter"><option value="">Todas las industrias</option></select>
+      <select id="zona-filter">
+        <option value="">Todas las zonas</option>
+        <option value="Norte">Norte (Colina / Lampa / Quilicura)</option>
+        <option value="Poniente">Poniente (Pudahuel / Maipú)</option>
+        <option value="Centro">Centro (Santiago / Providencia)</option>
+        <option value="Oriente">Oriente (Las Condes / Vitacura)</option>
+        <option value="Sur">Sur</option>
+        <option value="Regiones">Regiones</option>
+      </select>
+      <select id="cultura-filter">
+        <option value="">Toda cultura</option>
+        <option value="familiar">Familiar</option>
+        <option value="corporativa">Corporativa</option>
+        <option value="startup">Startup</option>
+        <option value="estatal">Estatal</option>
+      </select>
+      <select id="match-filter">
+        <option value="">Todo calce</option>
+        <option value="high">Alto (+70%)</option>
+        <option value="mid">Medio (40-70%)</option>
+      </select>
+      <span class="count-badge" id="showing-badge">0</span>
+      <button class="profile-btn" onclick="openModal()">✏️ Mi perfil</button>
+      <button class="clear-btn" onclick="clearFilters()">Limpiar</button>
+    </div>
+    <div class="profile-banner hidden" id="profile-banner">
+      <span class="pb-name" id="pb-name"></span>
+      <div class="pb-chips" id="pb-chips"></div>
+    </div>
+  </div>
+
+  <div class="grid-container">
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty-state">
+      <div class="empty-icon">🔎</div>
+      <h3>Sin resultados</h3>
+      <p>Intenta con otros filtros</p>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <strong>CalceLaboral.cl</strong> · Más de 200 empresas chilenas · Actualizado 2026<br>
+  <span style="font-size:0.7rem;opacity:0.7;margin-top:4px;display:block">Herramienta gratuita de exploración laboral · No almacena datos personales</span>
+</footer>
+
+<script>
+const CL = {sap:'SAP/ERP',procesos:'Mejora procesos',contratos:'Contratos',liderazgo:'Liderazgo',regional:'Op. regional',finanzas:'Finanzas',digital:'Transf. digital',comercial:'Comercial',rrhh:'RRHH',proyectos:'Proyectos',logistica:'Logística',produccion:'Producción',calidad:'Calidad ISO',hse:'HSE'};
+const PL = {impacto:'Impacto',autonomia:'Autonomía',estabilidad:'Estabilidad',desafio:'Desafío',crecimiento:'Crecimiento',proposito:'Propósito',innovacion:'Innovación',internacional:'Internacional'};
+const KL = {familiar:'Familiar',corporativa:'Corporativa',startup:'Startup',estatal:'Estatal'};
+
+const E = [
+  {n:"Lipigas S.A.",i:"Energía",p:"Distribución GLP a granel y cilindros residencial e industrial",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","liderazgo","logistica","finanzas"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Abastible S.A.",i:"Energía",p:"Distribución GLP hogares e industria · 39% mercado nacional · Grupo Copec",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","contratos","liderazgo","logistica"],pref:["impacto","estabilidad","crecimiento"],cult:["corporativa"]},
+  {n:"Gasco GLP S.A.",i:"Energía",p:"Distribución GLP a granel y envasado · Grupo CGE",z:"Centro",c:"Santiago",t:"corporativa",comp:["sap","procesos","contratos","liderazgo","logistica"],pref:["impacto","estabilidad"],cult:["corporativa"]},
+  {n:"ENAP",i:"Energía",p:"Refinación y comercialización de combustibles e hidrocarburos",z:"Centro",c:"Santiago",t:"estatal",comp:["procesos","contratos","hse","finanzas"],pref:["estabilidad"],cult:["estatal"]},
+  {n:"Copec S.A.",i:"Energía",p:"Combustibles, lubricantes y estaciones de servicio a nivel nacional",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["procesos","contratos","liderazgo","logistica"],pref:["estabilidad","crecimiento"],cult:["corporativa"]},
+  {n:"Metrogas",i:"Energía",p:"Distribución de gas natural por red de cañerías en RM",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","contratos","hse"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"Colbún S.A.",i:"Energía",p:"Generación eléctrica hidráulica y termoeléctrica",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["procesos","proyectos","finanzas"],pref:["estabilidad","crecimiento"],cult:["corporativa"]},
+  {n:"AES Andes",i:"Energía",p:"Generación eléctrica a partir de gas, carbón y renovables",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["procesos","hse","proyectos"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Oxiquim S.A.",i:"Química",p:"Almacenamiento y distribución de químicos y petroquímicos a granel",z:"Norte",c:"Quilicura",t:"familiar",comp:["sap","procesos","contratos","liderazgo","regional","logistica","finanzas","hse"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Quimetal Industrial",i:"Química",p:"Fabricación de compuestos inorgánicos · exporta a +60 países",z:"Poniente",c:"Maipú",t:"familiar",comp:["procesos","produccion","regional","calidad","hse"],pref:["impacto","internacional"],cult:["familiar"]},
+  {n:"Brenntag Chile",i:"Química",p:"Distribución de especialidades químicas industriales",z:"Sur",c:"San Bernardo",t:"corporativa",comp:["sap","procesos","contratos","logistica"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Química Solex",i:"Química",p:"Fabricación de productos químicos industriales desde 1946",z:"Norte",c:"Lampa",t:"familiar",comp:["sap","procesos","contratos","liderazgo","produccion"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Sika Chile",i:"Química",p:"Adhesivos, sellantes e impermeabilizantes para construcción",z:"Poniente",c:"Pudahuel",t:"corporativa",comp:["procesos","contratos","comercial"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"BASF Chile",i:"Química",p:"Productos químicos para agricultura, construcción y plásticos",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["procesos","comercial","regional"],pref:["internacional","estabilidad"],cult:["corporativa"]},
+  {n:"CASSA",i:"Química",p:"Fabricación de aerosoles, pinturas y productos de higiene",z:"Poniente",c:"Pudahuel",t:"familiar",comp:["procesos","produccion","liderazgo"],pref:["impacto"],cult:["familiar"]},
+  {n:"Resiter S.A.",i:"Ambiental",p:"Gestión y valorización de residuos industriales · 89% faenas mineras",z:"Centro",c:"Santiago",t:"familiar",comp:["sap","procesos","contratos","liderazgo","regional","hse","logistica"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Hidronor Chile",i:"Ambiental",p:"Tratamiento de residuos peligrosos · ISO 14001 y 45001",z:"Poniente",c:"Pudahuel",t:"corporativa",comp:["procesos","contratos","liderazgo","hse","calidad"],pref:["impacto","desafio"],cult:["corporativa"]},
+  {n:"GERSA S.A.",i:"Ambiental",p:"Recolección y gestión de residuos domiciliarios, comerciales e industriales",z:"Centro",c:"Santiago",t:"familiar",comp:["procesos","contratos","liderazgo","logistica"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Ambipar Chile",i:"Ambiental",p:"Gestión ambiental, residuos y emergencias industriales",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","contratos","liderazgo","regional","hse"],pref:["impacto","desafio","internacional"],cult:["corporativa"]},
+  {n:"Starco / Demarco",i:"Ambiental",p:"Residuos industriales y aseo para municipios y minería",z:"Centro",c:"Santiago",t:"familiar",comp:["procesos","contratos","liderazgo","logistica","hse"],pref:["impacto","autonomia"],cult:["familiar"]},
+  {n:"Veolia Chile",i:"Ambiental",p:"Tratamiento de agua, residuos y energía para industria",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","contratos","proyectos"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Aguas Andinas",i:"Ambiental",p:"Agua potable, alcantarillado y tratamiento en la RM",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","sap","proyectos"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"Blue Express",i:"Logística",p:"Courier y logística de última milla a nivel nacional",z:"Poniente",c:"Pudahuel",t:"corporativa",comp:["sap","procesos","contratos","liderazgo","logistica","digital"],pref:["impacto","desafio"],cult:["corporativa"]},
+  {n:"Transportes Nazar",i:"Logística",p:"Transporte refrigerado y temperatura controlada",z:"Norte",c:"Quilicura",t:"familiar",comp:["procesos","contratos","liderazgo","logistica","hse"],pref:["impacto","autonomia"],cult:["familiar"]},
+  {n:"Sitrans S.A.",i:"Logística",p:"Transporte de carga especializada para minería e industria",z:"Norte",c:"Lampa",t:"familiar",comp:["procesos","contratos","liderazgo","logistica","hse"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Bbosch",i:"Logística",p:"Transporte de carga e insumos para la gran minería",z:"Norte",c:"Colina",t:"familiar",comp:["procesos","contratos","liderazgo","logistica"],pref:["impacto","autonomia"],cult:["familiar"]},
+  {n:"Agunsa",i:"Logística",p:"Agencia naviera, logística portuaria y transporte de carga",z:"Centro",c:"Santiago",t:"familiar",comp:["sap","procesos","contratos","regional","logistica"],pref:["impacto","internacional"],cult:["familiar"]},
+  {n:"DHL Chile",i:"Logística",p:"Courier internacional, logística y cadena de suministro",z:"Poniente",c:"Pudahuel",t:"corporativa",comp:["sap","procesos","contratos","logistica","regional"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Chilexpress",i:"Logística",p:"Courier y paquetería · +150 sucursales nacionales",z:"Poniente",c:"Pudahuel",t:"corporativa",comp:["procesos","liderazgo","logistica","digital"],pref:["crecimiento"],cult:["corporativa"]},
+  {n:"Komatsu Cummins Chile",i:"Industrial",p:"Equipos de minería y construcción · motores diesel",z:"Norte",c:"Quilicura",t:"corporativa",comp:["sap","procesos","contratos","liderazgo","hse"],pref:["impacto","desafio","internacional"],cult:["corporativa"]},
+  {n:"Finning Chile (Caterpillar)",i:"Industrial",p:"Equipos Caterpillar para minería, construcción y energía",z:"Norte",c:"Quilicura",t:"corporativa",comp:["sap","procesos","contratos","liderazgo","hse"],pref:["impacto","estabilidad"],cult:["corporativa"]},
+  {n:"Cristalerías de Chile",i:"Industrial",p:"Fabricación de envases de vidrio para alimentos, bebidas y farmacéutica",z:"Norte",c:"Quilicura",t:"familiar",comp:["sap","procesos","contratos","liderazgo","produccion","calidad"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Plásticos Mh",i:"Industrial",p:"Envases PET, tapas y productos plásticos · 5 plantas en RM",z:"Norte",c:"Quilicura",t:"familiar",comp:["procesos","contratos","liderazgo","produccion"],pref:["impacto","autonomia"],cult:["familiar"]},
+  {n:"Polpaico (Holcim)",i:"Industrial",p:"Cemento, hormigón y materiales de construcción",z:"Norte",c:"Lampa",t:"corporativa",comp:["procesos","contratos","hse","produccion"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Madeco (Nexans Chile)",i:"Industrial",p:"Cables eléctricos y de telecomunicaciones",z:"Norte",c:"Lampa",t:"corporativa",comp:["sap","procesos","produccion"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"Pizarreño (Etex Group)",i:"Industrial",p:"Planchas de fibrocemento y sistemas constructivos",z:"Norte",c:"Colina",t:"corporativa",comp:["procesos","contratos","produccion"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"Volcán S.A.",i:"Industrial",p:"Planchas de yeso, aislamientos y soluciones constructivas",z:"Norte",c:"Quilicura",t:"familiar",comp:["procesos","contratos","liderazgo"],pref:["impacto"],cult:["familiar"]},
+  {n:"Gerdau AZA",i:"Industrial",p:"Producción de acero largo y productos siderúrgicos",z:"Poniente",c:"Renca",t:"corporativa",comp:["sap","procesos","contratos","produccion","hse"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"SKF Chile",i:"Industrial",p:"Rodamientos, sellados y lubricación para la industria",z:"Norte",c:"Quilicura",t:"corporativa",comp:["procesos","contratos","comercial"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"ABB Chile",i:"Industrial",p:"Automatización, electrificación y robótica industrial",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","digital","proyectos"],pref:["innovacion","internacional"],cult:["corporativa"]},
+  {n:"Siemens Chile",i:"Industrial",p:"Automatización, energía, transporte e infraestructura digital",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","digital","proyectos"],pref:["innovacion","internacional"],cult:["corporativa"]},
+  {n:"Parker Hannifin Chile",i:"Industrial",p:"Sistemas de movimiento y control para industria y minería",z:"Norte",c:"Quilicura",t:"corporativa",comp:["procesos","contratos"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"LATAM Airlines",i:"Aéreo",p:"Mayor aerolínea de Latinoamérica · pasajeros, carga y operaciones en 26 países",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","contratos","liderazgo","regional","finanzas","logistica"],pref:["impacto","crecimiento","internacional"],cult:["corporativa"]},
+  {n:"Sky Airline",i:"Aéreo",p:"Aerolínea low-cost chilena · rutas nacionales e internacionales",z:"Oriente",c:"Vitacura",t:"familiar",comp:["procesos","contratos","liderazgo","finanzas","logistica"],pref:["impacto","desafio","autonomia"],cult:["familiar"]},
+  {n:"JetSMART Chile",i:"Aéreo",p:"Aerolínea ultra low-cost · expansión regional en Sudamérica",z:"Poniente",c:"Pudahuel",t:"startup",comp:["procesos","contratos","liderazgo","logistica"],pref:["desafio","innovacion","internacional"],cult:["startup"]},
+  {n:"Aerocardal",i:"Aéreo",p:"Aviación ejecutiva, chárter y servicios aeronáuticos especializados",z:"Poniente",c:"Pudahuel",t:"familiar",comp:["procesos","contratos","hse","logistica"],pref:["impacto","autonomia"],cult:["familiar"]},
+  {n:"Helicópteros del Pacífico (HELIPAC)",i:"Aéreo",p:"Servicios de helicópteros para minería, energía, rescate y transporte de personal",z:"Regiones",c:"Antofagasta",t:"familiar",comp:["procesos","contratos","hse","liderazgo","logistica"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Ecocopter",i:"Aéreo",p:"Helicópteros para minería, forestal, combate de incendios y zonas extremas",z:"Centro",c:"Santiago",t:"familiar",comp:["procesos","contratos","hse","liderazgo","logistica"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"Lund Chile (Air Methods)",i:"Aéreo",p:"Transporte aéreo en helicóptero para faenas mineras y emergencias",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","contratos","hse","liderazgo"],pref:["impacto","desafio"],cult:["corporativa"]},
+  {n:"LATAM Cargo",i:"Aéreo",p:"Transporte de carga aérea en Latinoamérica · mayor operador regional",z:"Poniente",c:"Pudahuel",t:"corporativa",comp:["sap","procesos","contratos","logistica","regional"],pref:["impacto","internacional"],cult:["corporativa"]},
+  {n:"CMPC (Empresas CMPC)",i:"Papel",p:"Celulosa, papel, tissue y embalajes · segunda productora mundial · 11 países",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","liderazgo","regional","hse"],pref:["estabilidad","impacto","internacional"],cult:["familiar"]},
+  {n:"Arauco (CELCO)",i:"Papel",p:"Celulosa, madera y tableros · una de las mayores productoras mundiales",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","liderazgo","regional","hse"],pref:["estabilidad","impacto"],cult:["familiar"]},
+  {n:"CMPC Tissue",i:"Papel",p:"Papel tissue, higiénico y servilletas · Confort, Elite",z:"Poniente",c:"Maipú",t:"familiar",comp:["sap","procesos","contratos","liderazgo","logistica","produccion"],pref:["impacto","estabilidad"],cult:["familiar"]},
+  {n:"Smurfit Kappa Chile",i:"Papel",p:"Embalajes de cartón corrugado y papel para la industria",z:"Poniente",c:"Maipú",t:"corporativa",comp:["sap","procesos","produccion","calidad","liderazgo"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Papeles Bío-Bío",i:"Papel",p:"Producción de papeles de impresión, escritura y embalaje",z:"Regiones",c:"Concepción",t:"familiar",comp:["procesos","produccion","calidad","hse"],pref:["impacto","estabilidad"],cult:["familiar"]},
+  {n:"Masisa S.A.",i:"Papel",p:"Tableros MDF y MDP para muebles y construcción en Latam",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","contratos","regional"],pref:["internacional"],cult:["corporativa"]},
+  {n:"Codelco",i:"Minería",p:"Extracción y procesamiento de cobre · mayor productora mundial",z:"Centro",c:"Santiago",t:"estatal",comp:["sap","procesos","contratos","liderazgo","regional","hse","finanzas"],pref:["estabilidad","proposito"],cult:["estatal"]},
+  {n:"SQM",i:"Minería",p:"Litio, yodo, nitratos y potasio · líder mundial en litio",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","contratos","regional","hse"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Antofagasta Minerals",i:"Minería",p:"Minería de cobre · Los Pelambres, Centinela y Antucoya",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","hse","finanzas"],pref:["estabilidad","internacional"],cult:["familiar"]},
+  {n:"Anglo American Chile",i:"Minería",p:"Minería de cobre · Los Bronces y El Soldado",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","contratos","hse"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"CAP Minería",i:"Minería",p:"Producción de hierro y pellets · norte chico de Chile",z:"Regiones",c:"Coquimbo",t:"familiar",comp:["sap","procesos","contratos","hse"],pref:["impacto"],cult:["familiar"]},
+  {n:"Agrosuper S.A.",i:"Alimentos",p:"Producción avícola, porcina y cecinas · Super Pollo, Super Cerdo",z:"Regiones",c:"Rancagua",t:"familiar",comp:["sap","procesos","contratos","liderazgo","regional","logistica","hse"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+  {n:"CCU S.A.",i:"Alimentos",p:"Cerveza, aguas, jugos y bebidas · Cristal, Escudo, Austral",z:"Centro",c:"Santiago",t:"corporativa",comp:["sap","procesos","contratos","liderazgo","regional","logistica"],pref:["impacto","estabilidad"],cult:["corporativa"]},
+  {n:"Carozzi S.A.",i:"Alimentos",p:"Pastas, galletas, snacks y alimentos secos",z:"Poniente",c:"Nos",t:"familiar",comp:["sap","procesos","contratos","liderazgo","logistica"],pref:["impacto","desafio"],cult:["familiar"]},
+  {n:"Watt's S.A.",i:"Alimentos",p:"Jugos, conservas, aceites y productos de consumo masivo",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","liderazgo","logistica"],pref:["impacto"],cult:["familiar"]},
+  {n:"Soprole (Fonterra)",i:"Alimentos",p:"Lácteos: leche, yogurt, queso, mantequilla",z:"Centro",c:"Santiago",t:"corporativa",comp:["sap","procesos","contratos","logistica"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Nestlé Chile",i:"Alimentos",p:"Alimentos, bebidas y nutrición · Nescafé, Maggi, Kit Kat",z:"Centro",c:"Santiago",t:"corporativa",comp:["sap","procesos","contratos","regional"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Coca-Cola Andina",i:"Alimentos",p:"Embotellado y distribución de bebidas Coca-Cola",z:"Poniente",c:"Renca",t:"corporativa",comp:["sap","procesos","contratos","liderazgo","logistica"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Concha y Toro",i:"Alimentos",p:"Vinos y espirituosas · exporta a +140 países",z:"Regiones",c:"Pirque",t:"familiar",comp:["procesos","contratos","regional","logistica"],pref:["internacional","impacto"],cult:["familiar"]},
+  {n:"MercadoLibre Chile",i:"Retail",p:"E-commerce, pagos digitales y logística última milla",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","liderazgo","regional","digital","logistica"],pref:["impacto","desafio","innovacion","internacional"],cult:["corporativa"]},
+  {n:"Falabella S.A.",i:"Retail",p:"Tiendas por departamento, Tottus y financiero",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","liderazgo","logistica","regional"],pref:["estabilidad","crecimiento"],cult:["familiar","corporativa"]},
+  {n:"Cencosud S.A.",i:"Retail",p:"Jumbo, Santa Isabel, Paris, Easy · presencia en Sudamérica",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","regional","logistica"],pref:["estabilidad","internacional"],cult:["familiar"]},
+  {n:"Sonda S.A.",i:"Tecnología",p:"TI, infraestructura digital y soluciones de software · Latam",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","liderazgo","regional","digital","proyectos"],pref:["impacto","crecimiento","innovacion"],cult:["familiar"]},
+  {n:"Syntegra Chile",i:"Tecnología",p:"Consultoría SAP e implementación ERP para empresas medianas",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","liderazgo","proyectos","digital"],pref:["impacto","autonomia","innovacion"],cult:["familiar"]},
+  {n:"SAP Chile",i:"Tecnología",p:"Software ERP y soluciones empresariales · soporte y licencias",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","liderazgo","digital"],pref:["estabilidad","innovacion","internacional"],cult:["corporativa"]},
+  {n:"Accenture Chile",i:"Tecnología",p:"Consultoría de negocios, tecnología y transformación digital",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","regional","digital","proyectos"],pref:["desafio","internacional","innovacion"],cult:["corporativa"]},
+  {n:"Entel S.A.",i:"Tecnología",p:"Telecomunicaciones, internet, TV y soluciones empresariales",z:"Centro",c:"Santiago",t:"familiar",comp:["sap","procesos","liderazgo","regional"],pref:["estabilidad","crecimiento"],cult:["familiar"]},
+  {n:"Transbank",i:"Tecnología",p:"Procesamiento de pagos electrónicos con tarjeta en Chile",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","sap","finanzas"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"CMPC (Grupo CMPC)",i:"Forestal",p:"Celulosa, papel, tissue y embalajes · 11 países · capital familiar Matte",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","liderazgo","regional","hse"],pref:["estabilidad","impacto"],cult:["familiar"]},
+  {n:"Arauco (Grupo Angelini)",i:"Forestal",p:"Celulosa, madera y tableros · segunda mayor productora mundial",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","regional","hse"],pref:["estabilidad","impacto"],cult:["familiar"]},
+  {n:"Sigdo Koppers",i:"Construcción",p:"Ingeniería, montaje industrial y construcción para minería",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","liderazgo","proyectos","hse"],pref:["impacto","desafio"],cult:["familiar"]},
+  {n:"Besalco S.A.",i:"Construcción",p:"Construcción civil, minería y concesiones de infraestructura",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","liderazgo","proyectos","hse"],pref:["impacto"],cult:["familiar"]},
+  {n:"Echeverría Izquierdo",i:"Construcción",p:"Construcción, montaje industrial y gestión de proyectos",z:"Oriente",c:"Vitacura",t:"familiar",comp:["procesos","contratos","liderazgo","proyectos"],pref:["impacto","autonomia"],cult:["familiar"]},
+  {n:"Salfacorp",i:"Construcción",p:"Construcción e ingeniería de infraestructura y edificaciones",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","contratos","proyectos","hse"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"Laboratorio Chile (Teva)",i:"Salud",p:"Fabricación de medicamentos genéricos y especializados",z:"Poniente",c:"Maipú",t:"corporativa",comp:["sap","procesos","contratos","calidad","liderazgo"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Recalcine (Grünenthal)",i:"Salud",p:"Producción y distribución de medicamentos en Chile y Latam",z:"Poniente",c:"Maipú",t:"corporativa",comp:["sap","procesos","contratos","regional","calidad"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Cruz Verde",i:"Salud",p:"Mayor cadena de farmacias en Chile · +500 locales",z:"Centro",c:"Santiago",t:"familiar",comp:["sap","procesos","liderazgo","logistica"],pref:["estabilidad","crecimiento"],cult:["familiar"]},
+  {n:"Bupa Chile",i:"Salud",p:"Seguros de salud, clínicas y centros médicos",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["procesos","sap","finanzas","liderazgo"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Anasac S.A.",i:"Agrícola",p:"Agroquímicos, semillas y nutrición vegetal",z:"Oriente",c:"Las Condes",t:"familiar",comp:["procesos","contratos","regional","comercial"],pref:["impacto","internacional"],cult:["familiar"]},
+  {n:"Del Monte Chile",i:"Agrícola",p:"Producción y exportación de fruta fresca · mundial",z:"Regiones",c:"Rancagua",t:"corporativa",comp:["procesos","contratos","regional","logistica"],pref:["internacional"],cult:["corporativa"]},
+  {n:"Subsole S.A.",i:"Agrícola",p:"Exportación de frutas chilenas · cerezas, uvas, manzanas",z:"Regiones",c:"La Serena",t:"familiar",comp:["procesos","contratos","regional","logistica"],pref:["internacional","impacto"],cult:["familiar"]},
+  {n:"Cermaq Chile",i:"Pesca",p:"Cultivo de salmón y trucha · exportación Europa y Asia",z:"Regiones",c:"Puerto Montt",t:"corporativa",comp:["procesos","contratos","regional","hse","liderazgo"],pref:["internacional","estabilidad"],cult:["corporativa"]},
+  {n:"Multiexport Foods",i:"Pesca",p:"Producción y exportación de salmón del Atlántico y trucha",z:"Regiones",c:"Puerto Montt",t:"familiar",comp:["procesos","contratos","regional","logistica"],pref:["impacto","internacional"],cult:["familiar"]},
+  {n:"Banco Santander Chile",i:"Financiero",p:"Banca retail, empresarial e inversiones · mayor banco en Chile",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","finanzas","liderazgo","digital"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"BCI",i:"Financiero",p:"Banca personas y empresas · líder en banca digital",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","finanzas","digital","liderazgo"],pref:["innovacion","crecimiento"],cult:["familiar"]},
+  {n:"Banco de Chile",i:"Financiero",p:"Banca universal, créditos y servicios financieros",z:"Centro",c:"Santiago",t:"corporativa",comp:["sap","procesos","finanzas","liderazgo"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"Metro de Santiago",i:"Transporte",p:"Transporte público masivo subterráneo en la RM · 6 líneas",z:"Centro",c:"Santiago",t:"estatal",comp:["procesos","contratos","proyectos","hse","liderazgo"],pref:["estabilidad","proposito"],cult:["estatal"]},
+  {n:"Autopista Central (Vinci)",i:"Transporte",p:"Concesión y operación de autopistas urbanas en Santiago",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","contratos","proyectos"],pref:["estabilidad"],cult:["corporativa"]},
+  {n:"Universidad del Desarrollo",i:"Educación",p:"Educación superior privada · ingeniería, medicina, arquitectura",z:"Oriente",c:"Las Condes",t:"familiar",comp:["procesos","finanzas","liderazgo","proyectos"],pref:["proposito","estabilidad"],cult:["familiar"]},
+  {n:"Duoc UC",i:"Educación",p:"Educación técnico-profesional · +40 sedes nacionales",z:"Centro",c:"Santiago",t:"familiar",comp:["procesos","liderazgo","proyectos"],pref:["proposito","estabilidad"],cult:["familiar"]},
+  // ── FINANCIERO Y SEGUROS — GPTW Chile 2025 ──
+  {n:"Itaú Chile ⭐ GPTW #1",i:"Financiero",p:"Banca retail y empresarial · #1 Great Place to Work Chile 2025 · cultura basada en confianza y liderazgo",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","finanzas","liderazgo","digital","rrhh"],pref:["crecimiento","estabilidad","internacional"],cult:["corporativa"]},
+  {n:"MetLife y ProVida AFP ⭐ GPTW #4",i:"Seguros",p:"Seguros de vida y AFP · #4 Great Place to Work Chile 2025 · bienestar y desarrollo de colaboradores",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","finanzas","liderazgo","rrhh"],pref:["estabilidad","crecimiento","internacional"],cult:["corporativa"]},
+  {n:"BancoEstado y Filiales ⭐ GPTW #5",i:"Financiero",p:"Mayor banco estatal · #5 Great Place to Work Chile 2025 · banca personas, empresas y microempresarios",z:"Centro",c:"Santiago",t:"estatal",comp:["sap","procesos","finanzas","liderazgo","digital"],pref:["estabilidad","proposito"],cult:["estatal"]},
+  {n:"AFP Habitat ⭐ GPTW #6",i:"Seguros",p:"Administradora de fondos de pensiones · #6 Great Place to Work Chile 2025",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["procesos","finanzas","liderazgo","sap"],pref:["estabilidad","crecimiento"],cult:["corporativa"]},
+  {n:"Cencosud Scotiabank ⭐ GPTW #9",i:"Financiero",p:"Servicios financieros retail · tarjetas y créditos · #9 Great Place to Work Chile 2025",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","finanzas","liderazgo","comercial"],pref:["estabilidad","crecimiento"],cult:["corporativa"]},
+  {n:"Caja Los Andes ⭐ GPTW",i:"Financiero",p:"Caja de compensación · #3 GPTW categoría +1000 colaboradores · 4 millones de beneficiarios",z:"Centro",c:"Santiago",t:"estatal",comp:["procesos","finanzas","liderazgo","rrhh"],pref:["estabilidad","proposito"],cult:["estatal"]},
+  {n:"Scotiabank Chile",i:"Financiero",p:"Banca retail y corporativa · filial del grupo canadiense Scotiabank",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","finanzas","liderazgo"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Zurich Chile",i:"Seguros",p:"Seguros de vida, generales y de accidentes personales · grupo suizo",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["procesos","finanzas","sap"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Mutual de Seguridad (CCHC)",i:"Seguros",p:"Seguro de accidentes laborales y salud ocupacional para la construcción",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","hse","liderazgo","calidad"],pref:["estabilidad","proposito"],cult:["corporativa"]},
+  {n:"Consorcio Financiero",i:"Seguros",p:"Seguros de vida, AFP y servicios financieros · grupo chileno familiar",z:"Oriente",c:"Las Condes",t:"familiar",comp:["procesos","finanzas","liderazgo","comercial"],pref:["estabilidad","crecimiento"],cult:["familiar"]},
+  {n:"Mapfre Chile",i:"Seguros",p:"Seguros generales, de vida y salud · filial del grupo español Mapfre",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","finanzas","comercial","liderazgo"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"HDI Seguros Chile",i:"Seguros",p:"Seguros generales para personas y empresas · grupo alemán Talanx",z:"Centro",c:"Santiago",t:"corporativa",comp:["procesos","finanzas","comercial"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  // ── CONSTRUCCIÓN — nuevas + GPTW ──
+  {n:"Salfa ⭐ GPTW #16",i:"Construcción",p:"Construcción de infraestructura, obras civiles y servicios industriales · #16 Great Place to Work Chile 2025",z:"Oriente",c:"Las Condes",t:"familiar",comp:["sap","procesos","contratos","liderazgo","proyectos","hse"],pref:["impacto","desafio","estabilidad"],cult:["familiar"]},
+  {n:"Claro Vicuña Valenzuela (CVV)",i:"Construcción",p:"Ingeniería y construcción de obras viales, portuarias e industriales",z:"Oriente",c:"Las Condes",t:"familiar",comp:["procesos","contratos","proyectos","hse","liderazgo"],pref:["impacto","desafio"],cult:["familiar"]},
+  {n:"Bechtel Chile",i:"Construcción",p:"Ingeniería y construcción de grandes proyectos mineros y de infraestructura",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["sap","procesos","contratos","proyectos","hse","liderazgo","regional"],pref:["impacto","internacional","desafio"],cult:["corporativa"]},
+  {n:"Mas Errázuriz",i:"Construcción",p:"Construcción de obras civiles, mineras y de infraestructura en Chile",z:"Oriente",c:"Las Condes",t:"familiar",comp:["procesos","contratos","proyectos","hse","liderazgo"],pref:["impacto","familiar"],cult:["familiar"]},
+  {n:"Icafal",i:"Construcción",p:"Construcción e ingeniería de proyectos residenciales e industriales",z:"Oriente",c:"Las Condes",t:"familiar",comp:["procesos","contratos","proyectos","liderazgo"],pref:["impacto"],cult:["familiar"]},
+  {n:"Vial y Vives",i:"Construcción",p:"Construcción de túneles, obras mineras y proyectos de infraestructura",z:"Oriente",c:"Las Condes",t:"familiar",comp:["procesos","contratos","proyectos","hse","liderazgo"],pref:["impacto","desafio"],cult:["familiar"]},
+  {n:"OHL Chile",i:"Construcción",p:"Concesiones de infraestructura, autopistas y obras civiles · grupo español",z:"Oriente",c:"Las Condes",t:"corporativa",comp:["procesos","contratos","proyectos","finanzas"],pref:["estabilidad","internacional"],cult:["corporativa"]},
+  {n:"Constructora Gardilcic",i:"Construcción",p:"Obras civiles, industriales y mineras en zonas extremas de Chile",z:"Regiones",c:"Punta Arenas",t:"familiar",comp:["procesos","contratos","liderazgo","hse"],pref:["impacto","autonomia","desafio"],cult:["familiar"]},
+];
+
+const ITAGS = {Energía:'te',Química:'tq',Ambiental:'ta',Logística:'tl',Industrial:'ti',Aéreo:'tae',Papel:'tpa',Minería:'tm',Alimentos:'tal',Retail:'tr',Tecnología:'tt',Forestal:'tfor',Construcción:'tc',Salud:'ts',Agrícola:'tag',Pesca:'tp',Financiero:'tf',Transporte:'ttr',Educación:'ti',Seguros:'tf'};
+
+let profile = {name:'',comp:new Set(),pref:new Set(),cult:new Set()};
+let profileActive = false;
+
+function getInds() { return [...new Set(E.map(e=>e.i))].sort(); }
+
+function init() {
+  const s = document.getElementById('industry-filter');
+  getInds().forEach(i=>{ const o=document.createElement('option'); o.value=i; o.textContent=i; s.appendChild(o); });
+  document.getElementById('total-count').textContent = E.length;
+  document.getElementById('industry-count').textContent = getInds().length;
+  render();
+}
+
+function score(e) {
+  if (!profileActive || (profile.comp.size+profile.pref.size+profile.cult.size===0)) return null;
+  let s=0,t=0;
+  if (profile.comp.size>0) { s+=([...profile.comp].filter(c=>e.comp.includes(c)).length/profile.comp.size)*60; t+=60; }
+  if (profile.pref.size>0) { s+=([...profile.pref].filter(p=>e.pref.includes(p)).length/profile.pref.size)*25; t+=25; }
+  if (profile.cult.size>0) { s+=([...profile.cult].filter(k=>e.cult.includes(k)).length/profile.cult.size)*15; t+=15; }
+  return t>0 ? Math.round((s/t)*100) : null;
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const fi = document.getElementById('industry-filter').value;
+  const fz = document.getElementById('zona-filter').value;
+  const fc = document.getElementById('cultura-filter').value;
+  const fm = document.getElementById('match-filter').value;
+
+  let list = E.filter(e=> {
+    return (!q || e.n.toLowerCase().includes(q)||e.p.toLowerCase().includes(q)||e.c.toLowerCase().includes(q)||e.i.toLowerCase().includes(q))
+      && (!fi||e.i===fi) && (!fz||e.z===fz) && (!fc||e.t===fc);
+  }).map(e=>({...e,sc:score(e)}));
+
+  if (fm==='high') list=list.filter(e=>e.sc!==null&&e.sc>=70);
+  if (fm==='mid') list=list.filter(e=>e.sc!==null&&e.sc>=40&&e.sc<70);
+  if (profileActive) list.sort((a,b)=>(b.sc||0)-(a.sc||0));
+
+  const grid=document.getElementById('grid');
+  const empty=document.getElementById('empty-state');
+  grid.innerHTML='';
+  if (list.length===0) { empty.style.display='block'; grid.style.display='none'; }
+  else {
+    empty.style.display='none'; grid.style.display='grid';
+    list.forEach(e=>{
+      const s=e.sc;
+      const cls = s!==null?(s>=70?'card top-match':s>=45?'card good-match':'card'):'card';
+      const div=document.createElement('div'); div.className=cls;
+      let mhtml='';
+      if (profileActive&&(profile.comp.size>0||profile.pref.size>0)) {
+        const mc=[...profile.comp].filter(c=>e.comp.includes(c));
+        const uc=[...profile.comp].filter(c=>!e.comp.includes(c));
+        const mp=[...profile.pref].filter(p=>e.pref.includes(p));
+        const fc2=s>=70?'fill-h':s>=45?'fill-m':'fill-l';
+        const sc2=s>=70?'sh':s>=45?'sm':'sl';
+        const badges=[
+          ...mc.map(c=>`<span class="mb mb-g">✓ ${CL[c]||c}</span>`),
+          ...mp.map(p=>`<span class="mb mb-b">✓ ${PL[p]||p}</span>`),
+          ...uc.map(c=>`<span class="mb mb-gray">✗ ${CL[c]||c}</span>`)
+        ].join('');
+        mhtml=`<div class="match-section"><div class="match-badges">${badges}</div><div class="score-row"><span class="score-label">Calce</span><div class="score-bar-bg"><div class="score-bar-fill ${fc2}" style="width:${s}%"></div></div><span class="score-num ${sc2}">${s}%</span></div></div>`;
+      }
+      div.innerHTML=`
+        <div class="card-top"><div class="card-name">${e.n}</div><span class="itag ${ITAGS[e.i]||'ti'}">${e.i}</span></div>
+        <div class="card-product">${e.p}</div>
+        <div class="card-meta">
+          <span class="ctag">📍 ${e.c}</span>
+          <span class="ctag">${e.t==='familiar'?'👨‍👩‍👧 Familiar':e.t==='corporativa'?'🏢 Corporativa':e.t==='startup'?'🚀 Startup':'🏛 Estatal'}</span>
+        </div>${mhtml}`;
+      grid.appendChild(div);
+    });
+  }
+  document.getElementById('filtered-count').textContent=list.length;
+  document.getElementById('showing-badge').textContent=`${list.length} empresas`;
+}
+
+function saveProfile() {
+  profile.name=document.getElementById('user-name').value.trim();
+  profileActive=true;
+  document.getElementById('modal').classList.add('hidden');
+  updateBanner(); render();
+}
+function skipProfile() { profileActive=false; document.getElementById('modal').classList.add('hidden'); render(); }
+function openModal() { document.getElementById('modal').classList.remove('hidden'); }
+
+function updateBanner() {
+  const b=document.getElementById('profile-banner');
+  if (!profileActive) { b.classList.add('hidden'); return; }
+  b.classList.remove('hidden');
+  document.getElementById('pb-name').textContent=(profile.name?profile.name+' —':'Tu perfil —');
+  document.getElementById('pb-chips').innerHTML=[
+    ...[...profile.comp].map(c=>`<span class="pb-chip pb-c">${CL[c]||c}</span>`),
+    ...[...profile.pref].map(p=>`<span class="pb-chip pb-p">${PL[p]||p}</span>`),
+    ...[...profile.cult].map(k=>`<span class="pb-chip pb-k">${KL[k]||k}</span>`)
+  ].join('');
+}
+
+function clearFilters() {
+  ['search','industry-filter','zona-filter','cultura-filter','match-filter'].forEach(id=>{ const el=document.getElementById(id); el.tagName==='INPUT'?el.value='':el.value=''; });
+  document.getElementById('search').value='';
+  render();
+}
+
+document.querySelectorAll('.mchip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    const g=chip.dataset.g,v=chip.dataset.v;
+    const cls = g==='comp'?'sc':g==='pref'?'sp':'sk';
+    const set = g==='comp'?profile.comp:g==='pref'?profile.pref:profile.cult;
+    if (set.has(v)) { set.delete(v); chip.classList.remove(cls); }
+    else { set.add(v); chip.classList.add(cls); }
+  });
+});
+
+document.getElementById('search').addEventListener('input',render);
+['industry-filter','zona-filter','cultura-filter','match-filter'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+
+init();
+</script>
+</body>
+</html>
