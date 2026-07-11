@@ -313,9 +313,9 @@
         <input type="text" id="fPlatform" placeholder="Netflix, Disney+, HBO...">
       </div>
       <div class="field">
-        <label>Buscar en IMDb (título original / en inglés)</label>
+        <label>Info de IMDb (se busca sola al escribir el título)</label>
         <div style="display:flex; gap:8px;">
-          <input type="text" id="fImdbQuery" placeholder="Ej: Inception">
+          <input type="text" id="fImdbQuery" placeholder="Ajustar título de búsqueda (opcional)">
           <button type="button" id="imdbSearchBtn" style="flex-shrink:0; background:var(--card); border:1px solid var(--line); color:var(--gold); border-radius:8px; padding:0 14px; font-size:1.1rem;">🔍</button>
         </div>
         <div id="imdbResult" style="margin-top:10px;"></div>
@@ -520,6 +520,7 @@ function openEdit(id){
   document.getElementById('fTitle').value = item.t;
   document.getElementById('fPlatform').value = item.platform || '';
   document.getElementById('fImdbQuery').value = item.t;
+  delete document.getElementById('fImdbQuery').dataset.touched;
   setModalType(item.type);
   imdbData = (item.imdbRating || item.actors) ? { imdbRating: item.imdbRating || '', actors: item.actors || '', poster: item.poster || '' } : null;
   renderImdbPreview(imdbData, imdbData ? null : '');
@@ -532,6 +533,7 @@ function openAdd(){
   document.getElementById('fTitle').value = '';
   document.getElementById('fPlatform').value = '';
   document.getElementById('fImdbQuery').value = '';
+  delete document.getElementById('fImdbQuery').dataset.touched;
   setModalType('movie');
   imdbData = null;
   document.getElementById('imdbResult').innerHTML = '';
@@ -566,6 +568,16 @@ function renderImdbPreview(data, errMsg){
   `;
 }
 
+let imdbSearchTimer = null;
+function scheduleAutoSearch(){
+  clearTimeout(imdbSearchTimer);
+  const titleVal = document.getElementById('fTitle').value.trim();
+  const queryEl = document.getElementById('fImdbQuery');
+  if(!queryEl.dataset.touched){ queryEl.value = titleVal; }
+  if(!titleVal){ renderImdbPreview(null, null); return; }
+  imdbSearchTimer = setTimeout(searchImdb, 700);
+}
+
 async function searchImdb(){
   const q = document.getElementById('fImdbQuery').value.trim() || document.getElementById('fTitle').value.trim();
   if(!q){ renderImdbPreview(null, 'Escribe un título para buscar.'); return; }
@@ -595,6 +607,12 @@ async function saveModal(){
   const t = document.getElementById('fTitle').value.trim();
   if(!t) return;
   const platform = document.getElementById('fPlatform').value.trim();
+
+  if(!imdbData && t){
+    clearTimeout(imdbSearchTimer);
+    try{ await searchImdb(); } catch(e){ /* no bloquea el guardado */ }
+  }
+
   const extra = imdbData ? {
     imdbRating: imdbData.imdbRating || '',
     actors: imdbData.actors || '',
@@ -620,6 +638,12 @@ document.getElementById('openAdd').onclick = openAdd;
 document.getElementById('cancelBtn').onclick = closeModal;
 document.getElementById('saveBtn').onclick = saveModal;
 document.getElementById('imdbSearchBtn').onclick = searchImdb;
+document.getElementById('fTitle').addEventListener('input', scheduleAutoSearch);
+document.getElementById('fImdbQuery').addEventListener('input', () => {
+  document.getElementById('fImdbQuery').dataset.touched = '1';
+  clearTimeout(imdbSearchTimer);
+  imdbSearchTimer = setTimeout(searchImdb, 700);
+});
 document.getElementById('modalBg').onclick = (e) => { if(e.target.id === 'modalBg') closeModal(); };
 document.querySelectorAll('.type-toggle button').forEach(b => {
   b.onclick = () => setModalType(b.dataset.type);
