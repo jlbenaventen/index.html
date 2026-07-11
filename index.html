@@ -172,7 +172,12 @@
   .ticket::before{ left: -8px; }
   .ticket::after{ right: -8px; }
   .ticket .perf{ position:absolute; left:0; right:0; top:50%; border-top: 2px dashed var(--line); }
-  .ticket-top{ position:relative; z-index:1; padding-bottom: 10px; }
+  .ticket-top{ position:relative; z-index:1; padding-bottom: 10px; display:flex; gap:10px; align-items:flex-start; }
+  .ticket-text{ flex:1; min-width:0; }
+  .poster-thumb{
+    width: 46px; height: 68px; object-fit: cover; border-radius: 6px;
+    flex-shrink:0; border: 1px solid var(--line);
+  }
   .ticket-bottom{ position:relative; z-index:1; padding-top: 10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
 
   .ticket.watched{ background: var(--card-torn); }
@@ -272,8 +277,10 @@
   .imdb-badge{
     display:inline-flex; align-items:center; gap:3px;
     font-family:'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--gold);
+    text-decoration: none; border-bottom: 1px dotted rgba(227,178,60,0.5);
   }
   .actors-line{ font-family:'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--muted); margin-top:2px; }
+  .dates-line{ font-family:'JetBrains Mono', monospace; font-size: 0.6rem; color: #6b6178; margin-top:4px; }
 
   .loading{ text-align:center; padding: 60px 20px; color: var(--muted); font-family:'JetBrains Mono', monospace; font-size:0.8rem; }
   .banner{
@@ -411,6 +418,11 @@ function escapeHTML(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function formatDate(ts){
+  if(!ts || typeof ts.toDate !== 'function') return '';
+  return ts.toDate().toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
 async function init(){
   try{
     app = firebase.initializeApp(firebaseConfig);
@@ -475,17 +487,31 @@ function cardHTML(item){
     ? `<span class="platform">${escapeHTML(item.platform)}</span>`
     : `<span class="platform empty">sin definir</span>`;
   const ratingHTML = item.imdbRating
-    ? `<span class="imdb-badge">★ ${escapeHTML(item.imdbRating)}</span>`
+    ? (item.imdbID
+        ? `<a class="imdb-badge" href="https://www.imdb.com/title/${escapeHTML(item.imdbID)}/" target="_blank" rel="noopener">★ ${escapeHTML(item.imdbRating)}</a>`
+        : `<span class="imdb-badge">★ ${escapeHTML(item.imdbRating)}</span>`)
     : '';
   const actorsHTML = item.actors
     ? `<div class="actors-line">${escapeHTML(item.actors)}</div>`
+    : '';
+  const posterHTML = item.poster
+    ? `<img class="poster-thumb" src="${escapeHTML(item.poster)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+    : '';
+  const addedDate = formatDate(item.createdAt);
+  const watchedDate = formatDate(item.watchedAt);
+  const datesHTML = (addedDate || watchedDate)
+    ? `<div class="dates-line">${addedDate ? `Agregada ${addedDate}` : ''}${addedDate && watchedDate ? ' · ' : ''}${watchedDate ? `Vista ${watchedDate}` : ''}</div>`
     : '';
   return `
     <div class="ticket ${item.watched ? 'watched' : ''}" data-id="${item.id}">
       ${item.watched ? '<div class="stamp">VISTA</div>' : ''}
       <div class="ticket-top">
-        <div class="title">${escapeHTML(item.t)} ${ratingHTML}</div>
-        ${actorsHTML}
+        ${posterHTML}
+        <div class="ticket-text">
+          <div class="title">${escapeHTML(item.t)} ${ratingHTML}</div>
+          ${actorsHTML}
+          ${datesHTML}
+        </div>
       </div>
       <div class="perf"></div>
       <div class="ticket-bottom">
@@ -536,8 +562,12 @@ function attachCardEvents(){
 async function toggleWatched(id){
   const item = items.find(i => i.id === id);
   if(!item) return;
+  const nowWatched = !item.watched;
   try{
-    await db.collection(COLLECTION).doc(id).update({ watched: !item.watched });
+    await db.collection(COLLECTION).doc(id).update({
+      watched: nowWatched,
+      watchedAt: nowWatched ? firebase.firestore.FieldValue.serverTimestamp() : null
+    });
   } catch(e){
     showBanner('No se pudo actualizar. Intenta de nuevo.', 'error');
   }
@@ -561,7 +591,7 @@ function openEdit(id){
   document.getElementById('fImdbQuery').value = item.t;
   delete document.getElementById('fImdbQuery').dataset.touched;
   setModalType(item.type);
-  imdbData = (item.imdbRating || item.actors) ? { imdbRating: item.imdbRating || '', actors: item.actors || '', poster: item.poster || '' } : null;
+  imdbData = (item.imdbRating || item.actors) ? { imdbRating: item.imdbRating || '', actors: item.actors || '', poster: item.poster || '', imdbID: item.imdbID || '' } : null;
   renderImdbPreview(imdbData, imdbData ? null : '');
   document.getElementById('modalBg').classList.add('open');
 }
@@ -633,7 +663,8 @@ async function searchImdb(){
     imdbData = {
       imdbRating: data.imdbRating && data.imdbRating !== 'N/A' ? data.imdbRating : '',
       actors: data.Actors && data.Actors !== 'N/A' ? data.Actors : '',
-      poster: data.Poster && data.Poster !== 'N/A' ? data.Poster : ''
+      poster: data.Poster && data.Poster !== 'N/A' ? data.Poster : '',
+      imdbID: data.imdbID || ''
     };
     renderImdbPreview(imdbData, null);
   } catch(e){
@@ -655,8 +686,9 @@ async function saveModal(){
   const extra = imdbData ? {
     imdbRating: imdbData.imdbRating || '',
     actors: imdbData.actors || '',
-    poster: imdbData.poster || ''
-  } : { imdbRating: '', actors: '', poster: '' };
+    poster: imdbData.poster || '',
+    imdbID: imdbData.imdbID || ''
+  } : { imdbRating: '', actors: '', poster: '', imdbID: '' };
 
   try{
     if(editingId){
