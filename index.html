@@ -287,6 +287,23 @@
     color: var(--gold); font-family:'JetBrains Mono', monospace; font-size: 0.68rem; line-height:1.4;
   }
 
+  .dup-banner-link{
+    display:inline-block; margin-top: 10px; font-family:'JetBrains Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.5px; color: var(--gold);
+    background: rgba(227,178,60,0.1); border: 1px solid rgba(227,178,60,0.4);
+    padding: 6px 14px; border-radius: 14px; cursor:pointer;
+  }
+  .dup-group{ border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .dup-group-title{ font-family:'JetBrains Mono', monospace; font-size:0.68rem; color: var(--muted); margin-bottom:8px; }
+  .dup-entry{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding: 6px 0; border-top: 1px solid var(--line); }
+  .dup-entry:first-child{ border-top:none; }
+  .dup-entry .dup-entry-info{ font-size:0.85rem; color: var(--cream); }
+  .dup-entry .dup-entry-date{ font-family:'JetBrains Mono', monospace; font-size:0.62rem; color: var(--muted); }
+  .dup-entry button{
+    background: rgba(200,56,90,0.12); border: 1px solid var(--red); color: var(--red);
+    border-radius: 8px; padding: 6px 10px; font-size:0.7rem; cursor:pointer; flex-shrink:0;
+  }
+
   .suggestions{
     position:absolute; left:0; right:0; top:100%; margin-top:4px;
     background: var(--card); border: 1px solid var(--line); border-radius: 10px;
@@ -337,9 +354,10 @@
   <div class="marquee">
     <div class="bulbs"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     <h1>Cinemago</h1>
-    <div class="sub">lo que vemos, y dónde verlo</div>
+    <div class="sub" id="listSub">lo que vemos, y dónde verlo</div>
     <div class="live-dot"><span class="pulse"></span> en vivo, compartido</div>
     <div class="stats" id="stats"></div>
+    <div id="dupBanner"></div>
   </div>
 
   <div class="search-bar">
@@ -411,6 +429,16 @@
     </div>
   </div>
 
+  <div class="modal-bg" id="dupModalBg">
+    <div class="modal">
+      <h3>Posibles duplicados</h3>
+      <div id="dupList" style="display:flex; flex-direction:column; gap:14px; max-height:60vh; overflow-y:auto;"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="dupCloseBtn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
@@ -423,8 +451,11 @@ const firebaseConfig = {
   appId: "1:236494193862:web:bf897eb4329ddf530603c7"
 };
 
-const COLLECTION = 'cinemago_items';
+const LIST_PARAM = (new URLSearchParams(window.location.search).get('lista') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+const COLLECTION = LIST_PARAM ? `cinemago_items_${LIST_PARAM}` : 'cinemago_items';
 const OMDB_KEY = 'ab8f3857';
+const TMDB_KEY = 'eb1e7183f7f282c635c90f756a047e7b';
+const TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
 let imdbData = null; // datos confirmados por búsqueda, pendientes de guardar
 
 const seedData = [
@@ -486,6 +517,9 @@ function translateGenres(genreStr){
 }
 
 async function init(){
+  if(LIST_PARAM){
+    document.getElementById('listSub').textContent = `lista de ${LIST_PARAM}`;
+  }
   try{
     app = firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
@@ -496,19 +530,21 @@ async function init(){
 
   const col = db.collection(COLLECTION);
 
-  // Seed once if empty
-  try{
-    const snap = await col.limit(1).get();
-    if(snap.empty){
-      const batch = db.batch();
-      seedData.forEach(d => {
-        const ref = col.doc();
-        batch.set(ref, {...d, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-      });
-      await batch.commit();
+  // Seed once if empty (solo en la lista principal, sin ?lista=)
+  if(!LIST_PARAM){
+    try{
+      const snap = await col.limit(1).get();
+      if(snap.empty){
+        const batch = db.batch();
+        seedData.forEach(d => {
+          const ref = col.doc();
+          batch.set(ref, {...d, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+        });
+        await batch.commit();
+      }
+    } catch(e){
+      // seeding failure is non-fatal; listener below will still try to attach
     }
-  } catch(e){
-    // seeding failure is non-fatal; listener below will still try to attach
   }
 
   col.orderBy('createdAt', 'asc').onSnapshot(
@@ -634,6 +670,56 @@ function render(){
   `;
 
   attachCardEvents();
+  renderDupBanner();
+}
+
+function findDuplicateGroups(){
+  const groups = {};
+  items.forEach(item => {
+    const key = item.type + '|' + normalize(item.t);
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  });
+  return Object.values(groups).filter(g => g.length > 1);
+}
+
+function renderDupBanner(){
+  const box = document.getElementById('dupBanner');
+  const groups = findDuplicateGroups();
+  if(!groups.length){ box.innerHTML = ''; return; }
+  const count = groups.length;
+  box.innerHTML = `<span class="dup-banner-link" id="dupBannerBtn">⚠️ ${count} posible${count>1?'s':''} duplicado${count>1?'s':''} — revisar</span>`;
+  document.getElementById('dupBannerBtn').onclick = openDupModal;
+}
+
+function openDupModal(){
+  const groups = findDuplicateGroups();
+  const list = document.getElementById('dupList');
+  if(!groups.length){
+    list.innerHTML = `<div class="empty-msg">No hay duplicados por ahora 🎉</div>`;
+  } else {
+    list.innerHTML = groups.map(group => `
+      <div class="dup-group">
+        <div class="dup-group-title">${escapeHTML(group[0].t)} (${group.length}) — ${group[0].type === 'show' ? 'serie' : 'película'}</div>
+        ${group.map(item => `
+          <div class="dup-entry" data-id="${item.id}">
+            <div>
+              <div class="dup-entry-info">${escapeHTML(item.t)}${item.platform ? ` · ${escapeHTML(item.platform)}` : ''}</div>
+              <div class="dup-entry-date">${item.watched ? 'Vista' : 'Pendiente'}${formatDate(item.createdAt) ? ` · agregada ${formatDate(item.createdAt)}` : ''}</div>
+            </div>
+            <button class="dup-del-btn">Eliminar</button>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+    list.querySelectorAll('.dup-entry').forEach(el => {
+      el.querySelector('.dup-del-btn').onclick = async () => {
+        await deleteItem(el.dataset.id);
+        openDupModal(); // refrescar la lista tras borrar
+      };
+    });
+  }
+  document.getElementById('dupModalBg').classList.add('open');
 }
 
 function attachCardEvents(){
@@ -787,27 +873,35 @@ function checkDuplicate(titleVal){
 
 async function fetchSuggestions(query){
   const box = document.getElementById('titleSuggestions');
-  box.innerHTML = `<div class="suggestion-loading">Buscando en IMDb…</div>`;
+  box.innerHTML = `<div class="suggestion-loading">Buscando…</div>`;
   box.classList.add('open');
-  const typeParam = modalType === 'show' ? 'series' : 'movie';
+  const tmdbType = modalType === 'show' ? 'tv' : 'movie';
   try{
-    const res = await fetch(`https://www.omdbapi.com/?apikey=${OMDB_KEY}&s=${encodeURIComponent(query)}&type=${typeParam}`);
+    const res = await fetch(`https://api.themoviedb.org/3/search/${tmdbType}?api_key=${TMDB_KEY}&language=es-419&query=${encodeURIComponent(query)}`);
     const data = await res.json();
-    if(data.Response === 'False' || !data.Search || !data.Search.length){
+    if(data.success === false || data.status_code){
+      box.innerHTML = `<div class="suggestion-loading">Error de TMDb: ${escapeHTML(data.status_message || 'clave inválida o sin activar')} (código ${escapeHTML(String(data.status_code || res.status))})</div>`;
+      return;
+    }
+    if(!data.results || !data.results.length){
       box.innerHTML = `<div class="suggestion-loading">Sin resultados. Puedes escribir el título tal cual y buscar manual abajo.</div>`;
       return;
     }
-    box.innerHTML = data.Search.slice(0, 8).map(item => `
-      <div class="suggestion-item" data-id="${escapeHTML(item.imdbID)}" data-title="${escapeHTML(item.Title)}">
-        ${item.Poster && item.Poster !== 'N/A' ? `<img src="${escapeHTML(item.Poster)}" alt="">` : '<div style="width:30px;height:44px;flex-shrink:0;"></div>'}
+    box.innerHTML = data.results.slice(0, 8).map(item => {
+      const title = item.title || item.name || '';
+      const year = (item.release_date || item.first_air_date || '').slice(0,4);
+      const poster = item.poster_path ? `${TMDB_IMG}${item.poster_path}` : '';
+      return `
+      <div class="suggestion-item" data-id="${item.id}" data-media="${tmdbType}" data-title="${escapeHTML(title)}">
+        ${poster ? `<img src="${escapeHTML(poster)}" alt="">` : '<div style="width:30px;height:44px;flex-shrink:0;"></div>'}
         <div class="s-info">
-          <div class="s-title">${escapeHTML(item.Title)}</div>
-          <div class="s-year">${escapeHTML(item.Year || '')}</div>
+          <div class="s-title">${escapeHTML(title)}</div>
+          <div class="s-year">${escapeHTML(year)}</div>
         </div>
       </div>
-    `).join('');
+    `;}).join('');
     box.querySelectorAll('.suggestion-item').forEach(el => {
-      el.onclick = () => selectSuggestion(el.dataset.id, el.dataset.title);
+      el.onclick = () => selectSuggestion(el.dataset.id, el.dataset.media, el.dataset.title);
     });
   } catch(e){
     box.innerHTML = `<div class="suggestion-loading">Error de conexión buscando sugerencias.</div>`;
@@ -820,13 +914,38 @@ function closeSuggestions(){
   box.innerHTML = '';
 }
 
-async function selectSuggestion(imdbID, title){
+async function selectSuggestion(tmdbId, mediaType, title){
   closeSuggestions();
   document.getElementById('fTitle').value = title;
   document.getElementById('fImdbQuery').value = title;
   checkDuplicate(title);
   renderImdbPreview(null, 'Cargando datos…');
   try{
+    // 1. Obtener el imdb_id real desde TMDb
+    const extRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/external_ids?api_key=${TMDB_KEY}`);
+    const extData = await extRes.json();
+    const imdbID = extData.imdb_id || '';
+
+    // 2. Obtener plataformas de streaming (Chile) desde TMDb
+    let platformNames = [];
+    try{
+      const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
+      const provData = await provRes.json();
+      const cl = provData.results && provData.results.CL;
+      if(cl && cl.flatrate){ platformNames = cl.flatrate.map(p => p.provider_name); }
+    } catch(e2){ /* no bloquea si falla */ }
+
+    if(platformNames.length){
+      document.getElementById('fPlatform').value = platformNames.slice(0,3).join(', ');
+    }
+
+    if(!imdbID){
+      renderImdbPreview(null, 'Se cargaron datos básicos, pero no se encontró el ID de IMDb para el rating.');
+      imdbData = { imdbRating:'', actors:'', poster:'', imdbID:'', genre:'', plot:'' };
+      return;
+    }
+
+    // 3. Traer rating, actores, género y sinopsis desde OMDb
     const res = await fetch(`https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${encodeURIComponent(imdbID)}`);
     const data = await res.json();
     if(data.Response === 'False'){
@@ -949,6 +1068,9 @@ document.getElementById('modalBg').onclick = (e) => {
 document.addEventListener('click', (e) => {
   if(!e.target.closest('#fTitle') && !e.target.closest('#titleSuggestions')) closeSuggestions();
 });
+
+document.getElementById('dupCloseBtn').onclick = () => document.getElementById('dupModalBg').classList.remove('open');
+document.getElementById('dupModalBg').onclick = (e) => { if(e.target.id === 'dupModalBg') document.getElementById('dupModalBg').classList.remove('open'); };
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
   searchQuery = e.target.value;
