@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Cinemago</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root{
+    --bg: #17121f;
+    --bg-alt: #1f1829;
+    --card: #241c30;
+    --card-torn: #1a1522;
+    --gold: #e3b23c;
+    --red: #c8385a;
+    --green: #4caf7d;
+    --cream: #f3ede2;
+    --muted: #8d8299;
+    --line: #3a2f47;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{ margin:0; padding:0; }
+
+  body{
+    background:
+      radial-gradient(circle at 20% 0%, rgba(200,56,90,0.12), transparent 45%),
+      radial-gradient(circle at 80% 10%, rgba(227,178,60,0.08), transparent 40%),
+      var(--bg);
+    color: var(--cream);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    padding-bottom: calc(90px + var(--safe-bottom));
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input, textarea{ user-select: text; -webkit-user-select: text; }
+
+  /* MARQUEE HERO */
+  .marquee{
+    position: relative;
+    padding: calc(24px + var(--safe-top)) 16px 24px;
+    text-align: center;
+    border-bottom: 3px dashed var(--line);
+  }
+  .marquee .bulbs{
+    display:flex; justify-content:center; gap:8px; margin-bottom: 12px;
+  }
+  .marquee .bulbs span{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--gold);
+    box-shadow: 0 0 8px 2px rgba(227,178,60,0.7);
+    animation: flicker 2.4s infinite ease-in-out;
+  }
+  .marquee .bulbs span:nth-child(odd){ animation-delay: 0.6s; }
+  .marquee .bulbs span:nth-child(3n){ animation-delay: 1.2s; }
+  @keyframes flicker{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+  .marquee h1{
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 9vw, 2.8rem);
+    letter-spacing: 3px;
+    margin: 0;
+    text-shadow: 0 0 18px rgba(227,178,60,0.25);
+  }
+  .marquee .sub{
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .live-dot{
+    display:inline-flex; align-items:center; gap:5px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+  .live-dot .pulse{
+    width:6px; height:6px; border-radius:50%; background: var(--green);
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+
+  .stats{ display:flex; justify-content:center; gap: 22px; margin-top: 16px; }
+  .stat{ text-align:center; }
+  .stat .num{ font-family:'Bebas Neue', sans-serif; font-size: 1.7rem; color: var(--gold); line-height:1; }
+  .stat .lbl{ font-family:'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+  /* CONTROLS */
+  .controls{
+    position: sticky; top:0; z-index: 20;
+    background: rgba(23,18,31,0.92);
+    backdrop-filter: blur(8px);
+    padding: 10px 14px;
+    display:flex; gap:8px; overflow-x:auto;
+    border-bottom: 1px solid var(--line);
+    scrollbar-width: none;
+  }
+  .controls::-webkit-scrollbar{ display:none; }
+  .tab{
+    flex-shrink:0;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 9px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .tab.active{ border-color: var(--gold); color: var(--gold); background: rgba(227,178,60,0.08); }
+
+  /* SECTIONS */
+  .section{ padding: 18px 14px 0; }
+  .section h2{
+    font-family:'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
+    margin: 0 0 12px;
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .section h2 small{ font-family:'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--muted); }
+  .stack{ display:flex; flex-direction:column; gap: 12px; margin-bottom: 6px; }
+
+  /* TICKET CARD */
+  .ticket{
+    position: relative;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 14px 14px 12px;
+    display:flex; flex-direction:column; gap:6px;
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .ticket::before, .ticket::after{
+    content:""; position:absolute; width: 16px; height: 16px;
+    background: var(--bg); border-radius: 50%; top: 50%; transform: translateY(-50%);
+  }
+  .ticket::before{ left: -8px; }
+  .ticket::after{ right: -8px; }
+  .ticket .perf{ position:absolute; left:0; right:0; top:50%; border-top: 2px dashed var(--line); }
+  .ticket-top{ position:relative; z-index:1; padding-bottom: 10px; }
+  .ticket-bottom{ position:relative; z-index:1; padding-top: 10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+
+  .ticket.watched{ background: var(--card-torn); }
+  .ticket.watched .title{ text-decoration: line-through; color: var(--muted); }
+  .stamp{
+    position:absolute; top: 8px; right: -28px;
+    font-family:'Bebas Neue', sans-serif;
+    font-size: 0.75rem; letter-spacing: 2px; color: var(--red);
+    border: 2px solid var(--red); padding: 1px 26px;
+    transform: rotate(18deg); opacity: 0.85; z-index: 2; pointer-events:none;
+  }
+
+  .title{ font-size: 1rem; font-weight: 600; color: var(--cream); line-height: 1.3; word-break: break-word; }
+  .platform{
+    display:inline-block; font-family:'JetBrains Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.5px; text-transform: uppercase; color: var(--gold);
+    border: 1px solid rgba(227,178,60,0.4); padding: 4px 9px; border-radius: 12px;
+    background: rgba(227,178,60,0.06); white-space:nowrap;
+  }
+  .platform.empty{ color: var(--muted); border-color: var(--line); background:none; }
+  .row-btns{ display:flex; gap:4px; flex-shrink:0; }
+  .icon-btn{
+    background: none; border: none; cursor:pointer; color: var(--muted);
+    font-size: 1.15rem; padding: 6px 8px; line-height:1;
+  }
+  .icon-btn.toggle{ color: var(--green); }
+  .icon-btn.del{ color: var(--red); opacity:0.7; }
+
+  .empty-msg{
+    font-family:'JetBrains Mono', monospace; color: var(--muted); font-size: 0.8rem;
+    padding: 22px 4px; text-align:center; border: 1px dashed var(--line); border-radius: 10px;
+  }
+
+  /* FAB */
+  .fab{
+    position: fixed; right: 18px; bottom: calc(20px + var(--safe-bottom));
+    width: 58px; height: 58px; border-radius: 50%;
+    background: var(--red); color: var(--cream); border:none;
+    font-size: 1.8rem; box-shadow: 0 6px 20px rgba(200,56,90,0.5);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 30; cursor:pointer;
+  }
+  .fab:active{ transform: scale(0.94); }
+
+  /* MODAL / SHEET */
+  .modal-bg{
+    display:none; position: fixed; inset:0; background: rgba(10,7,14,0.75);
+    z-index: 50; align-items:flex-end; justify-content:center;
+  }
+  .modal-bg.open{ display:flex; }
+  .modal{
+    background: var(--bg-alt); border: 1px solid var(--line);
+    border-radius: 18px 18px 0 0; padding: 22px 20px calc(22px + var(--safe-bottom));
+    width: 100%; max-width: 480px;
+    animation: slideUp .2s ease-out;
+  }
+  @keyframes slideUp{ from{ transform: translateY(30px); opacity:0; } to{ transform: translateY(0); opacity:1; } }
+  .modal h3{ font-family:'Bebas Neue', sans-serif; letter-spacing: 1.5px; color: var(--gold); margin: 0 0 16px; font-size: 1.3rem; }
+  .field{ margin-bottom: 14px; }
+  .field label{ display:block; font-family:'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select{
+    width: 100%; background: var(--card); border: 1px solid var(--line); color: var(--cream);
+    padding: 12px 12px; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 16px;
+  }
+  .field input:focus, .field select:focus{ outline: 1px solid var(--gold); }
+  .type-toggle{ display:flex; gap:8px; }
+  .type-toggle button{
+    flex:1; padding: 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card); color: var(--muted); font-family:'Space Grotesk'; font-size:0.9rem; cursor:pointer;
+  }
+  .type-toggle button.active{ border-color: var(--gold); color: var(--gold); background: rgba(227,178,60,0.08); }
+  .modal-actions{ display:flex; gap:10px; margin-top: 18px; }
+  .modal-actions button{
+    flex:1; padding: 13px; border-radius: 8px; border:none; cursor:pointer;
+    font-family:'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing:1px; text-transform:uppercase;
+  }
+  .btn-cancel{ background: transparent; border: 1px solid var(--line) !important; color: var(--muted); }
+  .btn-save{ background: var(--gold); color: #201607; font-weight:600; }
+
+  .loading{ text-align:center; padding: 60px 20px; color: var(--muted); font-family:'JetBrains Mono', monospace; font-size:0.8rem; }
+  .banner{
+    margin: 12px 14px 0; padding: 10px 14px; border-radius: 8px;
+    font-family:'JetBrains Mono', monospace; font-size: 0.7rem; text-align:center;
+  }
+  .banner.error{ border: 1px solid var(--red); background: rgba(200,56,90,0.12); color: var(--cream); }
+</style>
+</head>
+<body>
+
+  <div class="marquee">
+    <div class="bulbs"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <h1>Cinemago</h1>
+    <div class="sub">lo que vemos, y dónde verlo</div>
+    <div class="live-dot"><span class="pulse"></span> en vivo, compartido</div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="controls">
+    <button class="tab active" data-filter="todo">Todo</button>
+    <button class="tab" data-filter="pendiente">Pendiente</button>
+    <button class="tab" data-filter="visto">Vista</button>
+  </div>
+
+  <div id="banner"></div>
+  <div id="loadingMsg" class="loading">Conectando con la cartelera…</div>
+
+  <div id="content" style="display:none;">
+    <div class="section">
+      <h2>Películas <small id="movieCount"></small></h2>
+      <div class="stack" id="movieGrid"></div>
+    </div>
+    <div class="section">
+      <h2>Series &amp; Miniseries <small id="showCount"></small></h2>
+      <div class="stack" id="showGrid"></div>
+    </div>
+  </div>
+
+  <button class="fab" id="openAdd">+</button>
+
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <h3 id="modalTitle">Nuevo título</h3>
+      <div class="field">
+        <label>Título</label>
+        <input type="text" id="fTitle" placeholder="Nombre de la película o serie">
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <div class="type-toggle">
+          <button type="button" class="active" data-type="movie">Película</button>
+          <button type="button" data-type="show">Serie</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Plataforma (opcional)</label>
+        <input type="text" id="fPlatform" placeholder="Netflix, Disney+, HBO...">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelBtn">Cancelar</button>
+        <button class="btn-save" id="saveBtn">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA1aTv4t7CXj735Qvw46nzSb9fhGkZ4VEo",
+  authDomain: "cinemago-97e90.firebaseapp.com",
+  projectId: "cinemago-97e90",
+  storageBucket: "cinemago-97e90.firebasestorage.app",
+  messagingSenderId: "236494193862",
+  appId: "1:236494193862:web:bf897eb4329ddf530603c7"
+};
+
+const COLLECTION = 'cinemago_items';
+
+const seedData = [
+  {t:'Tetris', type:'movie', platform:'', watched:false},
+  {t:'Kill Boksoon', type:'movie', platform:'', watched:true},
+  {t:'Passengers', type:'movie', platform:'', watched:false},
+  {t:'The Portable Door', type:'movie', platform:'', watched:true},
+  {t:'Last Flag Flying', type:'movie', platform:'', watched:false},
+  {t:'The Last Thing He Told Me', type:'movie', platform:'', watched:false},
+  {t:'West Side Story', type:'movie', platform:'', watched:false},
+  {t:'Walk of Shame (2014)', type:'movie', platform:'Netflix', watched:false},
+  {t:'Al mejor postor (La mejor oferta)', type:'movie', platform:'', watched:false},
+  {t:'The Gangster, the Cop and the Devil', type:'movie', platform:'', watched:true},
+  {t:'La extraordinaria vida de Eleanor', type:'movie', platform:'', watched:false},
+  {t:'The Roses', type:'movie', platform:'', watched:true},
+  {t:'¿Debería casarme con un asesino?', type:'show', platform:'Netflix', watched:true},
+  {t:'Así aprenderás', type:'show', platform:'', watched:true},
+  {t:'The Mysterious Benedict Society', type:'show', platform:'', watched:false},
+  {t:'Yellowstone', type:'show', platform:'', watched:false},
+  {t:'Seeking Persephone', type:'show', platform:'', watched:false},
+  {t:'The Cleaner (El Limpiador)', type:'show', platform:'Disney+', watched:false},
+  {t:'Empire Waist', type:'show', platform:'', watched:true},
+  {t:'The Unicorn', type:'show', platform:'', watched:false},
+  {t:'¿De quién huimos, mamá?', type:'show', platform:'', watched:false},
+];
+
+let app, db;
+let items = [];
+let currentFilter = 'todo';
+let editingId = null;
+let modalType = 'movie';
+
+function showBanner(msg, type){
+  const el = document.getElementById('banner');
+  el.innerHTML = `<div class="banner ${type||'error'}">${msg}</div>`;
+}
+function clearBanner(){ document.getElementById('banner').innerHTML = ''; }
+
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function init(){
+  try{
+    app = firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  } catch(e){
+    document.getElementById('loadingMsg').textContent = 'No se pudo conectar a la base de datos compartida.';
+    return;
+  }
+
+  const col = db.collection(COLLECTION);
+
+  // Seed once if empty
+  try{
+    const snap = await col.limit(1).get();
+    if(snap.empty){
+      const batch = db.batch();
+      seedData.forEach(d => {
+        const ref = col.doc();
+        batch.set(ref, {...d, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+      });
+      await batch.commit();
+    }
+  } catch(e){
+    // seeding failure is non-fatal; listener below will still try to attach
+  }
+
+  col.orderBy('createdAt', 'asc').onSnapshot(
+    (snapshot) => {
+      items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      document.getElementById('loadingMsg').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      clearBanner();
+      render();
+    },
+    (err) => {
+      document.getElementById('loadingMsg').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      showBanner('Sin conexión con la lista compartida en este momento. Revisa tu internet.', 'error');
+    }
+  );
+}
+
+function matchesFilter(item){
+  if(currentFilter === 'pendiente') return !item.watched;
+  if(currentFilter === 'visto') return item.watched;
+  return true;
+}
+
+function cardHTML(item){
+  const platformHTML = item.platform
+    ? `<span class="platform">${escapeHTML(item.platform)}</span>`
+    : `<span class="platform empty">sin definir</span>`;
+  return `
+    <div class="ticket ${item.watched ? 'watched' : ''}" data-id="${item.id}">
+      ${item.watched ? '<div class="stamp">VISTA</div>' : ''}
+      <div class="ticket-top">
+        <div class="title">${escapeHTML(item.t)}</div>
+      </div>
+      <div class="perf"></div>
+      <div class="ticket-bottom">
+        ${platformHTML}
+        <div class="row-btns">
+          <button class="icon-btn toggle" title="Marcar">${item.watched ? '↺' : '✓'}</button>
+          <button class="icon-btn edit" title="Editar">✎</button>
+          <button class="icon-btn del" title="Eliminar">✕</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function render(){
+  const movies = items.filter(i => i.type === 'movie' && matchesFilter(i));
+  const shows = items.filter(i => i.type === 'show' && matchesFilter(i));
+
+  const movieGrid = document.getElementById('movieGrid');
+  const showGrid = document.getElementById('showGrid');
+
+  movieGrid.innerHTML = movies.length ? movies.map(cardHTML).join('') : `<div class="empty-msg">No hay películas en esta categoría.</div>`;
+  showGrid.innerHTML = shows.length ? shows.map(cardHTML).join('') : `<div class="empty-msg">No hay series en esta categoría.</div>`;
+
+  document.getElementById('movieCount').textContent = `${movies.length} de ${items.filter(i=>i.type==='movie').length}`;
+  document.getElementById('showCount').textContent = `${shows.length} de ${items.filter(i=>i.type==='show').length}`;
+
+  const total = items.length;
+  const totalWatched = items.filter(i => i.watched).length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Títulos</div></div>
+    <div class="stat"><div class="num">${totalWatched}</div><div class="lbl">Vistos</div></div>
+    <div class="stat"><div class="num">${total - totalWatched}</div><div class="lbl">Pendientes</div></div>
+  `;
+
+  attachCardEvents();
+}
+
+function attachCardEvents(){
+  document.querySelectorAll('.ticket').forEach(el => {
+    const id = el.dataset.id;
+    el.querySelector('.toggle').onclick = () => toggleWatched(id);
+    el.querySelector('.edit').onclick = () => openEdit(id);
+    el.querySelector('.del').onclick = () => deleteItem(id);
+  });
+}
+
+async function toggleWatched(id){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  try{
+    await db.collection(COLLECTION).doc(id).update({ watched: !item.watched });
+  } catch(e){
+    showBanner('No se pudo actualizar. Intenta de nuevo.', 'error');
+  }
+}
+
+async function deleteItem(id){
+  try{
+    await db.collection(COLLECTION).doc(id).delete();
+  } catch(e){
+    showBanner('No se pudo eliminar. Intenta de nuevo.', 'error');
+  }
+}
+
+function openEdit(id){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Editar título';
+  document.getElementById('fTitle').value = item.t;
+  document.getElementById('fPlatform').value = item.platform || '';
+  setModalType(item.type);
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function openAdd(){
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Nuevo título';
+  document.getElementById('fTitle').value = '';
+  document.getElementById('fPlatform').value = '';
+  setModalType('movie');
+  document.getElementById('modalBg').classList.add('open');
+  setTimeout(() => document.getElementById('fTitle').focus(), 150);
+}
+
+function setModalType(type){
+  modalType = type;
+  document.querySelectorAll('.type-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === type);
+  });
+}
+
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+
+async function saveModal(){
+  const t = document.getElementById('fTitle').value.trim();
+  if(!t) return;
+  const platform = document.getElementById('fPlatform').value.trim();
+
+  try{
+    if(editingId){
+      await db.collection(COLLECTION).doc(editingId).update({ t, type: modalType, platform });
+    } else {
+      await db.collection(COLLECTION).add({
+        t, type: modalType, platform, watched: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    closeModal();
+  } catch(e){
+    showBanner('No se pudo guardar. Revisa tu conexión e intenta de nuevo.', 'error');
+  }
+}
+
+document.getElementById('openAdd').onclick = openAdd;
+document.getElementById('cancelBtn').onclick = closeModal;
+document.getElementById('saveBtn').onclick = saveModal;
+document.getElementById('modalBg').onclick = (e) => { if(e.target.id === 'modalBg') closeModal(); };
+document.querySelectorAll('.type-toggle button').forEach(b => {
+  b.onclick = () => setModalType(b.dataset.type);
+});
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentFilter = tab.dataset.filter;
+    render();
+  };
+});
+
+init();
+</script>
+</body>
+</html>
