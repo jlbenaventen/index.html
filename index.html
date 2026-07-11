@@ -94,6 +94,26 @@
   .stat .num{ font-family:'Bebas Neue', sans-serif; font-size: 1.7rem; color: var(--gold); line-height:1; }
   .stat .lbl{ font-family:'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 
+  /* SEARCH */
+  .search-bar{
+    position: relative;
+    background: var(--bg);
+    padding: 14px 14px 0;
+  }
+  .search-icon{
+    position:absolute; left: 28px; top: 50%; transform: translateY(-50%);
+    font-size:0.85rem; opacity:0.6; pointer-events:none;
+  }
+  .search-bar input{
+    width:100%; background: var(--card); border: 1px solid var(--line); color: var(--cream);
+    padding: 11px 36px 11px 34px; border-radius: 22px; font-family:'Space Grotesk', sans-serif; font-size: 16px;
+  }
+  .search-bar input:focus{ outline: 1px solid var(--gold); }
+  .clear-search{
+    position:absolute; right: 26px; top: 50%; transform: translateY(-50%);
+    background:none; border:none; color: var(--muted); font-size: 1rem; cursor:pointer; padding:6px;
+  }
+
   /* CONTROLS */
   .controls{
     position: sticky; top:0; z-index: 20;
@@ -180,6 +200,7 @@
   }
   .icon-btn.toggle{ color: var(--green); }
   .icon-btn.del{ color: var(--red); opacity:0.7; }
+  .icon-btn.edit{ display:inline-block; transform: scaleX(-1); }
 
   .empty-msg{
     font-family:'JetBrains Mono', monospace; color: var(--muted); font-size: 0.8rem;
@@ -270,6 +291,12 @@
     <div class="sub">lo que vemos, y dónde verlo</div>
     <div class="live-dot"><span class="pulse"></span> en vivo, compartido</div>
     <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Buscar título o actor...">
+    <button id="clearSearch" class="clear-search" style="display:none;">✕</button>
   </div>
 
   <div class="controls">
@@ -370,6 +397,7 @@ const seedData = [
 let app, db;
 let items = [];
 let currentFilter = 'todo';
+let searchQuery = '';
 let editingId = null;
 let modalType = 'movie';
 
@@ -425,9 +453,20 @@ async function init(){
   );
 }
 
+function normalize(s){
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function matchesFilter(item){
-  if(currentFilter === 'pendiente') return !item.watched;
-  if(currentFilter === 'visto') return item.watched;
+  if(currentFilter === 'pendiente' && item.watched) return false;
+  if(currentFilter === 'visto' && !item.watched) return false;
+  if(searchQuery){
+    const q = normalize(searchQuery);
+    const inTitle = normalize(item.t).includes(q);
+    const inActors = normalize(item.actors).includes(q);
+    const inPlatform = normalize(item.platform).includes(q);
+    if(!inTitle && !inActors && !inPlatform) return false;
+  }
   return true;
 }
 
@@ -645,6 +684,18 @@ document.getElementById('fImdbQuery').addEventListener('input', () => {
   imdbSearchTimer = setTimeout(searchImdb, 700);
 });
 document.getElementById('modalBg').onclick = (e) => { if(e.target.id === 'modalBg') closeModal(); };
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  searchQuery = e.target.value;
+  document.getElementById('clearSearch').style.display = searchQuery ? 'block' : 'none';
+  render();
+});
+document.getElementById('clearSearch').onclick = () => {
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearSearch').style.display = 'none';
+  render();
+};
 document.querySelectorAll('.type-toggle button').forEach(b => {
   b.onclick = () => setModalType(b.dataset.type);
 });
