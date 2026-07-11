@@ -139,6 +139,12 @@
     cursor: pointer;
   }
   .tab.active{ border-color: var(--gold); color: var(--gold); background: rgba(227,178,60,0.08); }
+  .sort-select{
+    flex-shrink:0; margin-left:auto;
+    font-family:'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing:0.5px;
+    background: transparent; border: 1px solid var(--line); color: var(--muted);
+    padding: 8px 10px; border-radius: 20px;
+  }
 
   /* SECTIONS */
   .section{ padding: 18px 14px 0; }
@@ -275,6 +281,31 @@
   .imdb-status{ font-family:'JetBrains Mono', monospace; font-size:0.72rem; color: var(--muted); }
   .imdb-status.err{ color: var(--red); }
 
+  .dup-warning{
+    margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+    background: rgba(227,178,60,0.1); border: 1px solid rgba(227,178,60,0.4);
+    color: var(--gold); font-family:'JetBrains Mono', monospace; font-size: 0.68rem; line-height:1.4;
+  }
+
+  .suggestions{
+    position:absolute; left:0; right:0; top:100%; margin-top:4px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    max-height: 240px; overflow-y:auto; z-index: 60; display:none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .suggestions.open{ display:block; }
+  .suggestion-item{
+    display:flex; align-items:center; gap:10px; padding: 9px 12px; cursor:pointer;
+    border-bottom: 1px solid var(--line);
+  }
+  .suggestion-item:last-child{ border-bottom:none; }
+  .suggestion-item:active{ background: rgba(227,178,60,0.1); }
+  .suggestion-item img{ width:30px; height:44px; object-fit:cover; border-radius:4px; flex-shrink:0; background: var(--bg); }
+  .suggestion-item .s-info{ min-width:0; }
+  .suggestion-item .s-title{ font-size:0.85rem; color: var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .suggestion-item .s-year{ font-family:'JetBrains Mono', monospace; font-size:0.65rem; color: var(--muted); }
+  .suggestion-loading{ padding: 10px 12px; font-family:'JetBrains Mono', monospace; font-size:0.7rem; color: var(--muted); }
+
   .imdb-badge{
     display:inline-flex; align-items:center; gap:3px;
     font-family:'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--gold);
@@ -321,6 +352,12 @@
     <button class="tab active" data-filter="todo">Todo</button>
     <button class="tab" data-filter="pendiente">Pendiente</button>
     <button class="tab" data-filter="visto">Vista</button>
+    <select id="sortSelect" class="sort-select">
+      <option value="recent">Recientes primero</option>
+      <option value="old">Antiguos primero</option>
+      <option value="az">A - Z</option>
+      <option value="rating">Mejor calificados</option>
+    </select>
   </div>
 
   <div id="banner"></div>
@@ -342,9 +379,11 @@
   <div class="modal-bg" id="modalBg">
     <div class="modal">
       <h3 id="modalTitle">Nuevo título</h3>
-      <div class="field">
+      <div class="field" style="position:relative;">
         <label>Título</label>
-        <input type="text" id="fTitle" placeholder="Nombre de la película o serie">
+        <input type="text" id="fTitle" placeholder="Nombre de la película o serie" autocomplete="off">
+        <div id="titleSuggestions" class="suggestions"></div>
+        <div id="dupWarning"></div>
       </div>
       <div class="field">
         <label>Tipo</label>
@@ -558,9 +597,24 @@ function cardHTML(item){
   `;
 }
 
+let sortMode = 'recent';
+
+function sortItems(list){
+  const arr = [...list];
+  if(sortMode === 'recent'){
+    arr.reverse();
+  } else if(sortMode === 'az'){
+    arr.sort((a,b) => normalize(a.t).localeCompare(normalize(b.t)));
+  } else if(sortMode === 'rating'){
+    arr.sort((a,b) => (parseFloat(b.imdbRating) || -1) - (parseFloat(a.imdbRating) || -1));
+  }
+  // 'old' usa el orden original (createdAt ascendente, tal cual viene de Firestore)
+  return arr;
+}
+
 function render(){
-  const movies = items.filter(i => i.type === 'movie' && matchesFilter(i));
-  const shows = items.filter(i => i.type === 'show' && matchesFilter(i));
+  const movies = sortItems(items.filter(i => i.type === 'movie' && matchesFilter(i)));
+  const shows = sortItems(items.filter(i => i.type === 'show' && matchesFilter(i)));
 
   const movieGrid = document.getElementById('movieGrid');
   const showGrid = document.getElementById('showGrid');
@@ -633,6 +687,8 @@ function openEdit(id){
   setModalType(item.type);
   imdbData = (item.imdbRating || item.actors) ? { imdbRating: item.imdbRating || '', actors: item.actors || '', poster: item.poster || '', imdbID: item.imdbID || '', genre: item.genre || '', plot: item.plot || '' } : null;
   renderImdbPreview(imdbData, imdbData ? null : '');
+  document.getElementById('dupWarning').innerHTML = '';
+  duplicateConfirmed = false;
   document.getElementById('modalBg').classList.add('open');
 }
 
@@ -646,6 +702,9 @@ function openAdd(){
   setModalType('movie');
   imdbData = null;
   document.getElementById('imdbResult').innerHTML = '';
+  document.getElementById('dupWarning').innerHTML = '';
+  duplicateConfirmed = false;
+  document.getElementById('saveBtn').textContent = 'Guardar';
   document.getElementById('modalBg').classList.add('open');
   setTimeout(() => document.getElementById('fTitle').focus(), 150);
 }
@@ -657,7 +716,7 @@ function setModalType(type){
   });
 }
 
-function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); closeSuggestions(); }
 
 function renderImdbPreview(data, errMsg, translating){
   const el = document.getElementById('imdbResult');
@@ -701,8 +760,98 @@ function scheduleAutoSearch(){
   const titleVal = document.getElementById('fTitle').value.trim();
   const queryEl = document.getElementById('fImdbQuery');
   if(!queryEl.dataset.touched){ queryEl.value = titleVal; }
-  if(!titleVal){ renderImdbPreview(null, null); return; }
-  imdbSearchTimer = setTimeout(searchImdb, 700);
+  checkDuplicate(titleVal);
+  if(!titleVal){
+    renderImdbPreview(null, null);
+    closeSuggestions();
+    return;
+  }
+  imdbSearchTimer = setTimeout(() => fetchSuggestions(titleVal), 450);
+}
+
+let duplicateConfirmed = false;
+function checkDuplicate(titleVal){
+  duplicateConfirmed = false;
+  document.getElementById('saveBtn').textContent = 'Guardar';
+  const box = document.getElementById('dupWarning');
+  const t = normalize(titleVal);
+  if(!t){ box.innerHTML = ''; return; }
+  const match = items.find(i => i.id !== editingId && normalize(i.t) === t);
+  if(match){
+    const dateStr = formatDate(match.createdAt);
+    box.innerHTML = `<div class="dup-warning">⚠️ Ya tienes "${escapeHTML(match.t)}" en tu lista${dateStr ? ` (agregada ${dateStr})` : ''}. Si guardas, se agregará de todas formas como un título aparte.</div>`;
+  } else {
+    box.innerHTML = '';
+  }
+}
+
+async function fetchSuggestions(query){
+  const box = document.getElementById('titleSuggestions');
+  box.innerHTML = `<div class="suggestion-loading">Buscando en IMDb…</div>`;
+  box.classList.add('open');
+  const typeParam = modalType === 'show' ? 'series' : 'movie';
+  try{
+    const res = await fetch(`https://www.omdbapi.com/?apikey=${OMDB_KEY}&s=${encodeURIComponent(query)}&type=${typeParam}`);
+    const data = await res.json();
+    if(data.Response === 'False' || !data.Search || !data.Search.length){
+      box.innerHTML = `<div class="suggestion-loading">Sin resultados. Puedes escribir el título tal cual y buscar manual abajo.</div>`;
+      return;
+    }
+    box.innerHTML = data.Search.slice(0, 8).map(item => `
+      <div class="suggestion-item" data-id="${escapeHTML(item.imdbID)}" data-title="${escapeHTML(item.Title)}">
+        ${item.Poster && item.Poster !== 'N/A' ? `<img src="${escapeHTML(item.Poster)}" alt="">` : '<div style="width:30px;height:44px;flex-shrink:0;"></div>'}
+        <div class="s-info">
+          <div class="s-title">${escapeHTML(item.Title)}</div>
+          <div class="s-year">${escapeHTML(item.Year || '')}</div>
+        </div>
+      </div>
+    `).join('');
+    box.querySelectorAll('.suggestion-item').forEach(el => {
+      el.onclick = () => selectSuggestion(el.dataset.id, el.dataset.title);
+    });
+  } catch(e){
+    box.innerHTML = `<div class="suggestion-loading">Error de conexión buscando sugerencias.</div>`;
+  }
+}
+
+function closeSuggestions(){
+  const box = document.getElementById('titleSuggestions');
+  box.classList.remove('open');
+  box.innerHTML = '';
+}
+
+async function selectSuggestion(imdbID, title){
+  closeSuggestions();
+  document.getElementById('fTitle').value = title;
+  document.getElementById('fImdbQuery').value = title;
+  checkDuplicate(title);
+  renderImdbPreview(null, 'Cargando datos…');
+  try{
+    const res = await fetch(`https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${encodeURIComponent(imdbID)}`);
+    const data = await res.json();
+    if(data.Response === 'False'){
+      renderImdbPreview(null, 'No se pudo cargar la info de este título.');
+      return;
+    }
+    const rawPlot = data.Plot && data.Plot !== 'N/A' ? data.Plot : '';
+    imdbData = {
+      imdbRating: data.imdbRating && data.imdbRating !== 'N/A' ? data.imdbRating : '',
+      actors: data.Actors && data.Actors !== 'N/A' ? data.Actors : '',
+      poster: data.Poster && data.Poster !== 'N/A' ? data.Poster : '',
+      imdbID: data.imdbID || imdbID,
+      genre: data.Genre && data.Genre !== 'N/A' ? data.Genre : '',
+      plot: rawPlot
+    };
+    renderImdbPreview(imdbData, null);
+    if(rawPlot){
+      renderImdbPreview(imdbData, 'Traduciendo resumen…', true);
+      const translated = await translateToSpanish(rawPlot);
+      if(translated) imdbData.plot = translated;
+      renderImdbPreview(imdbData, null);
+    }
+  } catch(e){
+    renderImdbPreview(null, 'Error de conexión al cargar el título.');
+  }
 }
 
 async function searchImdb(){
@@ -746,6 +895,14 @@ async function saveModal(){
   if(!t) return;
   const platform = document.getElementById('fPlatform').value.trim();
 
+  const match = !editingId ? items.find(i => normalize(i.t) === normalize(t)) : null;
+  if(match && !duplicateConfirmed){
+    duplicateConfirmed = true;
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.textContent = 'Toca de nuevo para agregar igual';
+    return;
+  }
+
   if(!imdbData && t){
     clearTimeout(imdbSearchTimer);
     try{ await searchImdb(); } catch(e){ /* no bloquea el guardado */ }
@@ -785,7 +942,13 @@ document.getElementById('fImdbQuery').addEventListener('input', () => {
   clearTimeout(imdbSearchTimer);
   imdbSearchTimer = setTimeout(searchImdb, 700);
 });
-document.getElementById('modalBg').onclick = (e) => { if(e.target.id === 'modalBg') closeModal(); };
+document.getElementById('modalBg').onclick = (e) => {
+  if(e.target.id === 'modalBg') closeModal();
+  if(!e.target.closest('#fTitle') && !e.target.closest('#titleSuggestions')) closeSuggestions();
+};
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#fTitle') && !e.target.closest('#titleSuggestions')) closeSuggestions();
+});
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
   searchQuery = e.target.value;
@@ -809,6 +972,11 @@ document.querySelectorAll('.tab').forEach(tab => {
     currentFilter = tab.dataset.filter;
     render();
   };
+});
+
+document.getElementById('sortSelect').addEventListener('change', (e) => {
+  sortMode = e.target.value;
+  render();
 });
 
 init();
