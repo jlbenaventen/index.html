@@ -206,6 +206,7 @@
   .icon-btn.toggle{ color: var(--green); }
   .icon-btn.del{ color: var(--red); opacity:0.7; }
   .icon-btn.edit{ display:inline-block; transform: scaleX(-1); }
+  .icon-btn.trailer{ color: #e05252; font-size: 0.95rem; }
 
   .empty-msg{
     font-family:'JetBrains Mono', monospace; color: var(--muted); font-size: 0.8rem;
@@ -517,6 +518,7 @@ function cardHTML(item){
       <div class="ticket-bottom">
         ${platformHTML}
         <div class="row-btns">
+          <button class="icon-btn trailer" title="Ver tráiler">▶</button>
           <button class="icon-btn toggle" title="Marcar">${item.watched ? '↺' : '✓'}</button>
           <button class="icon-btn edit" title="Editar">✎</button>
           <button class="icon-btn del" title="Eliminar">✕</button>
@@ -556,7 +558,15 @@ function attachCardEvents(){
     el.querySelector('.toggle').onclick = () => toggleWatched(id);
     el.querySelector('.edit').onclick = () => openEdit(id);
     el.querySelector('.del').onclick = () => deleteItem(id);
+    el.querySelector('.trailer').onclick = () => openTrailer(id);
   });
+}
+
+function openTrailer(id){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  const q = encodeURIComponent(`${item.t} trailer`);
+  window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank', 'noopener');
 }
 
 async function toggleWatched(id){
