@@ -282,6 +282,16 @@
   }
   .actors-line{ font-family:'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--muted); margin-top:2px; }
   .dates-line{ font-family:'JetBrains Mono', monospace; font-size: 0.6rem; color: #6b6178; margin-top:4px; }
+  .genre-chips{ display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+  .genre-chip{
+    font-family:'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing:0.3px;
+    color: var(--red); background: rgba(200,56,90,0.1); border: 1px solid rgba(200,56,90,0.3);
+    padding: 2px 7px; border-radius: 8px; text-transform: uppercase;
+  }
+  .plot-line{
+    font-size: 0.76rem; color: #b3a9c2; margin-top: 5px; line-height:1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
 
   .loading{ text-align:center; padding: 60px 20px; color: var(--muted); font-family:'JetBrains Mono', monospace; font-size:0.8rem; }
   .banner{
@@ -424,6 +434,18 @@ function formatDate(ts){
   return ts.toDate().toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit', year:'numeric' });
 }
 
+const GENRE_ES = {
+  'Action':'Acción','Adventure':'Aventura','Animation':'Animación','Biography':'Biografía',
+  'Comedy':'Comedia','Crime':'Crimen','Documentary':'Documental','Drama':'Drama',
+  'Family':'Familiar','Fantasy':'Fantasía','Film-Noir':'Cine negro','History':'Histórica',
+  'Horror':'Terror','Music':'Musical','Musical':'Musical','Mystery':'Misterio',
+  'News':'Noticias','Reality-TV':'Reality','Romance':'Romance','Sci-Fi':'Ciencia ficción',
+  'Sport':'Deporte','Talk-Show':'Talk show','Thriller':'Suspenso','War':'Bélica','Western':'Western'
+};
+function translateGenres(genreStr){
+  return genreStr.split(',').map(g => g.trim()).filter(Boolean).map(g => GENRE_ES[g] || g);
+}
+
 async function init(){
   try{
     app = firebase.initializeApp(firebaseConfig);
@@ -503,6 +525,12 @@ function cardHTML(item){
   const datesHTML = (addedDate || watchedDate)
     ? `<div class="dates-line">${addedDate ? `Agregada ${addedDate}` : ''}${addedDate && watchedDate ? ' · ' : ''}${watchedDate ? `Vista ${watchedDate}` : ''}</div>`
     : '';
+  const genreHTML = item.genre
+    ? `<div class="genre-chips">${translateGenres(item.genre).map(g => `<span class="genre-chip">${escapeHTML(g)}</span>`).join('')}</div>`
+    : '';
+  const plotHTML = item.plot
+    ? `<div class="plot-line">${escapeHTML(item.plot)}</div>`
+    : '';
   return `
     <div class="ticket ${item.watched ? 'watched' : ''}" data-id="${item.id}">
       ${item.watched ? '<div class="stamp">VISTA</div>' : ''}
@@ -510,7 +538,9 @@ function cardHTML(item){
         ${posterHTML}
         <div class="ticket-text">
           <div class="title">${escapeHTML(item.t)} ${ratingHTML}</div>
+          ${genreHTML}
           ${actorsHTML}
+          ${plotHTML}
           ${datesHTML}
         </div>
       </div>
@@ -601,7 +631,7 @@ function openEdit(id){
   document.getElementById('fImdbQuery').value = item.t;
   delete document.getElementById('fImdbQuery').dataset.touched;
   setModalType(item.type);
-  imdbData = (item.imdbRating || item.actors) ? { imdbRating: item.imdbRating || '', actors: item.actors || '', poster: item.poster || '', imdbID: item.imdbID || '' } : null;
+  imdbData = (item.imdbRating || item.actors) ? { imdbRating: item.imdbRating || '', actors: item.actors || '', poster: item.poster || '', imdbID: item.imdbID || '', genre: item.genre || '', plot: item.plot || '' } : null;
   renderImdbPreview(imdbData, imdbData ? null : '');
   document.getElementById('modalBg').classList.add('open');
 }
@@ -636,11 +666,13 @@ function renderImdbPreview(data, errMsg){
     return;
   }
   if(!data){ el.innerHTML = ''; return; }
+  const genreLine = data.genre ? `<div class="actors" style="margin-top:2px;">${escapeHTML(translateGenres(data.genre).join(' · '))}</div>` : '';
   el.innerHTML = `
     <div class="imdb-preview">
       ${data.poster ? `<img src="${escapeHTML(data.poster)}" alt="">` : ''}
       <div>
         <span class="badge">★ IMDb ${escapeHTML(data.imdbRating || '—')}</span>
+        ${genreLine}
         <div class="actors">${escapeHTML(data.actors || 'Actores no disponibles')}</div>
       </div>
     </div>
@@ -674,7 +706,9 @@ async function searchImdb(){
       imdbRating: data.imdbRating && data.imdbRating !== 'N/A' ? data.imdbRating : '',
       actors: data.Actors && data.Actors !== 'N/A' ? data.Actors : '',
       poster: data.Poster && data.Poster !== 'N/A' ? data.Poster : '',
-      imdbID: data.imdbID || ''
+      imdbID: data.imdbID || '',
+      genre: data.Genre && data.Genre !== 'N/A' ? data.Genre : '',
+      plot: data.Plot && data.Plot !== 'N/A' ? data.Plot : ''
     };
     renderImdbPreview(imdbData, null);
   } catch(e){
@@ -697,8 +731,10 @@ async function saveModal(){
     imdbRating: imdbData.imdbRating || '',
     actors: imdbData.actors || '',
     poster: imdbData.poster || '',
-    imdbID: imdbData.imdbID || ''
-  } : { imdbRating: '', actors: '', poster: '', imdbID: '' };
+    imdbID: imdbData.imdbID || '',
+    genre: imdbData.genre || '',
+    plot: imdbData.plot || ''
+  } : { imdbRating: '', actors: '', poster: '', imdbID: '', genre: '', plot: '' };
 
   try{
     if(editingId){
