@@ -457,6 +457,7 @@ const OMDB_KEY = 'ab8f3857';
 const TMDB_KEY = 'eb1e7183f7f282c635c90f756a047e7b';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
 let imdbData = null; // datos confirmados por búsqueda, pendientes de guardar
+const suggestionOverviews = {}; // overview en español por id de TMDb, capturado en la búsqueda
 
 const seedData = [
   {t:'Tetris', type:'movie', platform:'', watched:false},
@@ -891,6 +892,7 @@ async function fetchSuggestions(query){
       const title = item.title || item.name || '';
       const year = (item.release_date || item.first_air_date || '').slice(0,4);
       const poster = item.poster_path ? `${TMDB_IMG}${item.poster_path}` : '';
+      suggestionOverviews[item.id] = item.overview || '';
       return `
       <div class="suggestion-item" data-id="${item.id}" data-media="${tmdbType}" data-title="${escapeHTML(title)}">
         ${poster ? `<img src="${escapeHTML(poster)}" alt="">` : '<div style="width:30px;height:44px;flex-shrink:0;"></div>'}
@@ -920,6 +922,7 @@ async function selectSuggestion(tmdbId, mediaType, title){
   document.getElementById('fImdbQuery').value = title;
   checkDuplicate(title);
   renderImdbPreview(null, 'Cargando datos…');
+  const spanishOverview = suggestionOverviews[tmdbId] || '';
   try{
     // 1. Obtener el imdb_id real desde TMDb
     const extRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/external_ids?api_key=${TMDB_KEY}`);
@@ -940,33 +943,38 @@ async function selectSuggestion(tmdbId, mediaType, title){
     }
 
     if(!imdbID){
-      renderImdbPreview(null, 'Se cargaron datos básicos, pero no se encontró el ID de IMDb para el rating.');
-      imdbData = { imdbRating:'', actors:'', poster:'', imdbID:'', genre:'', plot:'' };
+      imdbData = { imdbRating:'', actors:'', poster:'', imdbID:'', genre:'', plot: spanishOverview };
+      renderImdbPreview(imdbData, spanishOverview ? null : 'Se cargaron datos básicos, pero no se encontró el ID de IMDb para el rating.');
       return;
     }
 
-    // 3. Traer rating, actores, género y sinopsis desde OMDb
+    // 3. Traer rating, actores y género desde OMDb (el resumen ya lo tenemos en español desde TMDb)
     const res = await fetch(`https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${encodeURIComponent(imdbID)}`);
     const data = await res.json();
     if(data.Response === 'False'){
-      renderImdbPreview(null, 'No se pudo cargar la info de este título.');
+      imdbData = { imdbRating:'', actors:'', poster:'', imdbID:imdbID, genre:'', plot: spanishOverview };
+      renderImdbPreview(imdbData, null);
       return;
     }
-    const rawPlot = data.Plot && data.Plot !== 'N/A' ? data.Plot : '';
     imdbData = {
       imdbRating: data.imdbRating && data.imdbRating !== 'N/A' ? data.imdbRating : '',
       actors: data.Actors && data.Actors !== 'N/A' ? data.Actors : '',
       poster: data.Poster && data.Poster !== 'N/A' ? data.Poster : '',
       imdbID: data.imdbID || imdbID,
       genre: data.Genre && data.Genre !== 'N/A' ? data.Genre : '',
-      plot: rawPlot
+      plot: spanishOverview
     };
     renderImdbPreview(imdbData, null);
-    if(rawPlot){
-      renderImdbPreview(imdbData, 'Traduciendo resumen…', true);
-      const translated = await translateToSpanish(rawPlot);
-      if(translated) imdbData.plot = translated;
-      renderImdbPreview(imdbData, null);
+
+    // Respaldo: si TMDb no tenía resumen en español, traducimos el de OMDb (en inglés)
+    if(!spanishOverview){
+      const rawPlot = data.Plot && data.Plot !== 'N/A' ? data.Plot : '';
+      if(rawPlot){
+        renderImdbPreview(imdbData, 'Traduciendo resumen…', true);
+        const translated = await translateToSpanish(rawPlot);
+        imdbData.plot = translated || rawPlot;
+        renderImdbPreview(imdbData, null);
+      }
     }
   } catch(e){
     renderImdbPreview(null, 'Error de conexión al cargar el título.');
