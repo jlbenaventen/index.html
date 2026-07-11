@@ -659,14 +659,16 @@ function setModalType(type){
 
 function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
 
-function renderImdbPreview(data, errMsg){
+function renderImdbPreview(data, errMsg, translating){
   const el = document.getElementById('imdbResult');
-  if(errMsg !== undefined && errMsg !== null){
-    el.innerHTML = errMsg ? `<div class="imdb-status err">${escapeHTML(errMsg)}</div>` : '';
+  if(errMsg && !translating){
+    el.innerHTML = `<div class="imdb-status err">${escapeHTML(errMsg)}</div>`;
     return;
   }
   if(!data){ el.innerHTML = ''; return; }
   const genreLine = data.genre ? `<div class="actors" style="margin-top:2px;">${escapeHTML(translateGenres(data.genre).join(' · '))}</div>` : '';
+  const plotLine = data.plot ? `<div class="actors" style="margin-top:5px; font-style:italic;">${escapeHTML(data.plot)}</div>` : '';
+  const translatingLine = translating ? `<div class="imdb-status" style="margin-top:5px;">${escapeHTML(errMsg)}</div>` : '';
   el.innerHTML = `
     <div class="imdb-preview">
       ${data.poster ? `<img src="${escapeHTML(data.poster)}" alt="">` : ''}
@@ -674,9 +676,23 @@ function renderImdbPreview(data, errMsg){
         <span class="badge">★ IMDb ${escapeHTML(data.imdbRating || '—')}</span>
         ${genreLine}
         <div class="actors">${escapeHTML(data.actors || 'Actores no disponibles')}</div>
+        ${plotLine}
+        ${translatingLine}
       </div>
     </div>
   `;
+}
+
+async function translateToSpanish(text){
+  try{
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`);
+    const data = await res.json();
+    const translated = data && data.responseData && data.responseData.translatedText;
+    if(!translated || data.responseStatus !== 200) return null;
+    return translated;
+  } catch(e){
+    return null;
+  }
 }
 
 let imdbSearchTimer = null;
@@ -702,15 +718,23 @@ async function searchImdb(){
       renderImdbPreview(null, `No se encontró "${q}" en IMDb. Prueba con el título original en inglés.`);
       return;
     }
+    const rawPlot = data.Plot && data.Plot !== 'N/A' ? data.Plot : '';
     imdbData = {
       imdbRating: data.imdbRating && data.imdbRating !== 'N/A' ? data.imdbRating : '',
       actors: data.Actors && data.Actors !== 'N/A' ? data.Actors : '',
       poster: data.Poster && data.Poster !== 'N/A' ? data.Poster : '',
       imdbID: data.imdbID || '',
       genre: data.Genre && data.Genre !== 'N/A' ? data.Genre : '',
-      plot: data.Plot && data.Plot !== 'N/A' ? data.Plot : ''
+      plot: rawPlot
     };
     renderImdbPreview(imdbData, null);
+
+    if(rawPlot){
+      renderImdbPreview(imdbData, 'Traduciendo resumen…', true);
+      const translated = await translateToSpanish(rawPlot);
+      if(translated) imdbData.plot = translated;
+      renderImdbPreview(imdbData, null);
+    }
   } catch(e){
     imdbData = null;
     renderImdbPreview(null, 'Error de conexión al buscar en IMDb.');
