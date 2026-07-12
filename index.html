@@ -1160,6 +1160,7 @@ function renderRecRow(containerId, pool, mediaType, emptyMsg){
         <div class="rec-info">
           <div class="rec-title">${escapeHTML(title)}</div>
           <div class="rec-rating">★ ${escapeHTML(rating)}</div>
+          <div style="font-family:'JetBrains Mono', monospace; font-size:0.5rem; color:#e05252;">g: ${escapeHTML(JSON.stringify(r.genre_ids || 'sin dato'))}</div>
         </div>
       </div>
     `;
