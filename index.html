@@ -24,6 +24,43 @@
 
   *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+  .auth-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(200,56,90,0.12), transparent 45%),
+      radial-gradient(circle at 80% 10%, rgba(227,178,60,0.08), transparent 40%),
+      var(--bg);
+    padding: 20px;
+  }
+  .auth-box{ text-align:center; max-width:320px; width:100%; }
+  .google-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; padding: 13px; border-radius: 10px; border: 1px solid var(--line);
+    background: #fff; color:#3c4043; font-family:'Space Grotesk', sans-serif; font-weight:600;
+    font-size:0.9rem; cursor:pointer;
+  }
+  .google-btn:active{ transform: scale(0.98); }
+  .auth-status{ margin-top:14px; font-family:'JetBrains Mono', monospace; font-size:0.7rem; color: var(--muted); min-height:1em; }
+
+  .account-row{
+    display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px;
+    font-family:'JetBrains Mono', monospace; font-size:0.65rem; color: var(--muted);
+  }
+  .account-row img{ width:20px; height:20px; border-radius:50%; }
+  .account-btn{
+    background:transparent; border:1px solid var(--line); color: var(--muted);
+    padding:4px 10px; border-radius:12px; font-family:'JetBrains Mono', monospace; font-size:0.62rem; cursor:pointer;
+  }
+  .account-btn:hover{ border-color: var(--gold); color: var(--gold); }
+
+  .list-switch{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+  .list-chip{
+    font-family:'JetBrains Mono', monospace; font-size:0.62rem; padding:5px 10px; border-radius:12px;
+    border:1px solid var(--line); color: var(--muted); background:transparent; cursor:pointer;
+  }
+  .list-chip.active{ border-color:var(--gold); color:var(--gold); background:rgba(227,178,60,0.08); }
+
+
   html, body{ margin:0; padding:0; }
 
   body{
@@ -65,6 +102,30 @@
     letter-spacing: 3px;
     margin: 0;
     text-shadow: 0 0 18px rgba(227,178,60,0.25);
+  }
+  .go-text{
+    font-family: 'Bungee', sans-serif;
+    font-size: 0.85em;
+    background: linear-gradient(135deg, #ffd54a 0%, #e3b23c 35%, #c8385a 75%, #ff5478 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+    display: inline-block;
+    transform: rotate(-8deg) translateY(-2px);
+    margin-left: 4px;
+    animation: goBounce 2.2s ease-in-out infinite;
+    filter:
+      drop-shadow(1px 1px 0 #1a1523)
+      drop-shadow(-1px -1px 0 #1a1523)
+      drop-shadow(0 0 10px rgba(227,178,60,0.6));
+  }
+  @keyframes goBounce{
+    0%, 100%{ transform: rotate(-8deg) translateY(-2px) scale(1); }
+    50%{ transform: rotate(-4deg) translateY(-6px) scale(1.08); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .go-text{ animation: none; }
   }
   .marquee .sub{
     font-family: 'JetBrains Mono', monospace;
@@ -235,6 +296,21 @@
     font-size:1rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
   }
   .rec-card .rec-add.added{ background: var(--green); border-color: var(--green); color:#0b1f14; }
+  .rec-genre-filter{ display:flex; gap:6px; overflow-x:auto; padding: 8px 0 10px; scrollbar-width:none; }
+  .rec-genre-filter::-webkit-scrollbar{ display:none; }
+  .rec-genre-chip{
+    flex-shrink:0; font-family:'JetBrains Mono', monospace; font-size:0.65rem; letter-spacing:0.5px;
+    text-transform:uppercase; background:transparent; border:1px solid var(--line); color: var(--muted);
+    padding: 6px 12px; border-radius:14px; cursor:pointer;
+  }
+  .rec-genre-chip.active{ border-color: var(--gold); color: var(--gold); background: rgba(227,178,60,0.08); }
+  .rec-card .rec-dismiss{
+    position:absolute; top:6px; left:6px; width:22px; height:22px; border-radius:50%;
+    background: rgba(23,18,31,0.85); border: 1px solid var(--muted); color: var(--muted);
+    font-size:0.7rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .rec-card .rec-dismiss:hover{ border-color: var(--red); color: var(--red); }
+
   .rec-loading{
     font-family:'JetBrains Mono', monospace; font-size:0.72rem; color: var(--muted);
     padding: 10px 4px;
@@ -377,14 +453,30 @@
 </head>
 <body>
 
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-box">
+      <h1 style="font-family:'Bebas Neue', sans-serif; font-size:2.4rem; letter-spacing:2px; color:var(--gold); margin:0 0 6px;">Cinemago</h1>
+      <div style="font-family:'JetBrains Mono', monospace; color:var(--muted); font-size:0.75rem; margin-bottom:26px;">inicia sesión para ver tu lista</div>
+      <button id="googleSignInBtn" class="google-btn">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.92c1.7-1.57 2.68-3.88 2.68-6.64z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.27c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.96v2.33C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.7c-.18-.54-.28-1.11-.28-1.7s.1-1.16.28-1.7V4.97H.96C.35 6.17 0 7.54 0 9s.35 2.83.96 4.03l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.59-2.59C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+        Continuar con Google
+      </button>
+      <div id="authStatus" class="auth-status"></div>
+    </div>
+  </div>
+
+  <div id="appRoot" style="display:none;">
+
   <div class="marquee">
     <div class="bulbs"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-    <h1>Cinemago</h1>
+    <h1>Cinema <span class="go-text">GO</span></h1>
     <div class="sub" id="listSub">lo que vemos, y dónde verlo</div>
     <div class="live-dot"><span class="pulse"></span> en vivo, compartido</div>
+    <div class="account-row" id="accountRow"></div>
     <div class="stats" id="stats"></div>
     <div id="dupBanner"></div>
   </div>
+
 
   <div class="search-bar">
     <span class="search-icon">🔍</span>
@@ -418,6 +510,7 @@
     </div>
     <div class="section" id="recSection" style="display:none;">
       <h2>✨ Recomendadas para ti <small id="recStatus"></small></h2>
+      <div class="rec-genre-filter" id="recGenreFilter"></div>
       <div class="rec-subtitle" id="recSubtitle">Películas</div>
       <div class="rec-row" id="recMovies"></div>
       <div class="rec-subtitle" id="recSubtitleShows">Series</div>
@@ -474,6 +567,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyA1aTv4t7CXj735Qvw46nzSb9fhGkZ4VEo",
@@ -484,13 +578,21 @@ const firebaseConfig = {
   appId: "1:236494193862:web:bf897eb4329ddf530603c7"
 };
 
-const LIST_PARAM = (new URLSearchParams(window.location.search).get('lista') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
-const COLLECTION = LIST_PARAM ? `cinemago_items_${LIST_PARAM}` : 'cinemago_items';
+const LEGACY_LIST_PARAM = (new URLSearchParams(window.location.search).get('lista') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+const INVITE_PARAM = new URLSearchParams(window.location.search).get('invite') || '';
 const OMDB_KEY = 'ab8f3857';
 const TMDB_KEY = 'eb1e7183f7f282c635c90f756a047e7b';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
 let imdbData = null; // datos confirmados por búsqueda, pendientes de guardar
 const suggestionOverviews = {}; // overview en español por id de TMDb, capturado en la búsqueda
+
+let currentUser = null;
+let currentListId = null;
+let myLists = []; // [{id, name, isOwner}]
+let unsubscribeItems = null;
+
+function itemsCol(){ return db.collection('cinemago_lists').doc(currentListId).collection('items'); }
+function dismissedCol(){ return db.collection('cinemago_lists').doc(currentListId).collection('dismissed'); }
 
 const seedData = [
   {t:'Tetris', type:'movie', platform:'', watched:false},
@@ -567,37 +669,134 @@ function translateGenres(genreStr){
 }
 
 async function init(){
-  if(LIST_PARAM){
-    document.getElementById('listSub').textContent = `lista de ${LIST_PARAM}`;
-  }
   try{
     app = firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
   } catch(e){
-    document.getElementById('loadingMsg').textContent = 'No se pudo conectar a la base de datos compartida.';
+    document.getElementById('authStatus').textContent = 'No se pudo conectar a Firebase.';
     return;
   }
 
-  const col = db.collection(COLLECTION);
-
-  // Seed once if empty (solo en la lista principal, sin ?lista=)
-  if(!LIST_PARAM){
+  document.getElementById('googleSignInBtn').onclick = async () => {
+    document.getElementById('authStatus').textContent = 'Abriendo Google…';
     try{
-      const snap = await col.limit(1).get();
-      if(snap.empty){
-        const batch = db.batch();
-        seedData.forEach(d => {
-          const ref = col.doc();
-          batch.set(ref, {...d, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-        });
-        await batch.commit();
-      }
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await firebase.auth().signInWithPopup(provider);
     } catch(e){
-      // seeding failure is non-fatal; listener below will still try to attach
+      document.getElementById('authStatus').textContent = 'No se pudo iniciar sesión. Intenta de nuevo.';
     }
+  };
+
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if(!user){
+      currentUser = null;
+      document.getElementById('authScreen').style.display = 'flex';
+      document.getElementById('appRoot').style.display = 'none';
+      return;
+    }
+    currentUser = user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    document.getElementById('loadingMsg').style.display = 'block';
+    document.getElementById('content').style.display = 'none';
+    renderAccountRow();
+    await resolveUserList();
+  });
+}
+
+async function resolveUserList(){
+  const uid = currentUser.uid;
+
+  // 1. ¿Viene de un link de invitación? Únete a esa lista si no eres miembro aún.
+  if(INVITE_PARAM){
+    try{
+      const listRef = db.collection('cinemago_lists').doc(INVITE_PARAM);
+      const listSnap = await listRef.get();
+      if(listSnap.exists){
+        const data = listSnap.data();
+        if(!(data.members || []).includes(uid)){
+          await listRef.update({ members: firebase.firestore.FieldValue.arrayUnion(uid) });
+        }
+        currentListId = INVITE_PARAM;
+        await loadMyLists();
+        startListener();
+        return;
+      }
+    } catch(e){ /* si falla, seguimos con el flujo normal */ }
   }
 
-  col.orderBy('createdAt', 'asc').onSnapshot(
+  // 2. ¿Ya tiene listas propias?
+  await loadMyLists();
+  if(myLists.length){
+    currentListId = myLists[0].id;
+    startListener();
+    return;
+  }
+
+  // 3. Sin listas: ¿viene de un link antiguo (?lista=) para importar?
+  if(LEGACY_LIST_PARAM){
+    document.getElementById('loadingMsg').innerHTML = `Migrando tu lista anterior ("${escapeHTML(LEGACY_LIST_PARAM)}")…`;
+    await createListForUser(`Lista de ${LEGACY_LIST_PARAM}`, `cinemago_items_${LEGACY_LIST_PARAM}`);
+  } else {
+    document.getElementById('loadingMsg').innerHTML = 'Preparando tu lista…';
+    await createListForUser('Mi lista', 'cinemago_items');
+  }
+  await loadMyLists();
+  startListener();
+}
+
+async function createListForUser(name, legacyCollectionName){
+  const uid = currentUser.uid;
+  const listRef = db.collection('cinemago_lists').doc();
+  await listRef.set({
+    name, ownerId: uid, members: [uid],
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  currentListId = listRef.id;
+
+  // Intentar migrar datos de la colección antigua (si existe y tiene datos)
+  let migrated = false;
+  try{
+    const legacySnap = await db.collection(legacyCollectionName).get();
+    if(!legacySnap.empty){
+      const batch = db.batch();
+      legacySnap.forEach(doc => {
+        const ref = itemsCol().doc();
+        batch.set(ref, doc.data());
+      });
+      await batch.commit();
+      migrated = true;
+    }
+  } catch(e){ /* si falla la migración, seguimos igual */ }
+
+  // Si no había nada que migrar (usuario nuevo de verdad), sembramos la lista inicial
+  if(!migrated){
+    const batch = db.batch();
+    seedData.forEach(d => {
+      const ref = itemsCol().doc();
+      batch.set(ref, {...d, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    });
+    await batch.commit();
+  }
+}
+
+async function loadMyLists(){
+  const uid = currentUser.uid;
+  try{
+    const snap = await db.collection('cinemago_lists').where('members', 'array-contains', uid).get();
+    myLists = snap.docs.map(d => ({ id: d.id, name: d.data().name || 'Mi lista', isOwner: d.data().ownerId === uid }));
+  } catch(e){
+    myLists = currentListId ? [{ id: currentListId, name: 'Mi lista', isOwner: true }] : [];
+  }
+}
+
+function startListener(){
+  if(unsubscribeItems) unsubscribeItems();
+  const list = myLists.find(l => l.id === currentListId);
+  document.getElementById('listSub').textContent = list ? list.name : 'lo que vemos, y dónde verlo';
+  renderListSwitcher();
+
+  unsubscribeItems = itemsCol().orderBy('createdAt', 'asc').onSnapshot(
     (snapshot) => {
       items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       document.getElementById('loadingMsg').style.display = 'none';
@@ -611,6 +810,45 @@ async function init(){
       showBanner('Sin conexión con la lista compartida en este momento. Revisa tu internet.', 'error');
     }
   );
+}
+
+function renderAccountRow(){
+  const el = document.getElementById('accountRow');
+  el.innerHTML = `
+    ${currentUser.photoURL ? `<img src="${escapeHTML(currentUser.photoURL)}" alt="">` : ''}
+    <span>${escapeHTML(currentUser.displayName || currentUser.email || '')}</span>
+    <button class="account-btn" id="inviteBtn">Invitar</button>
+    <button class="account-btn" id="signOutBtn">Salir</button>
+  `;
+  document.getElementById('inviteBtn').onclick = shareInviteLink;
+  document.getElementById('signOutBtn').onclick = () => firebase.auth().signOut();
+}
+
+function renderListSwitcher(){
+  const existing = document.querySelector('.list-switch');
+  if(existing) existing.remove();
+  const el = document.getElementById('listSub');
+  if(myLists.length <= 1) return;
+  const switcherHTML = `<div class="list-switch">${myLists.map(l =>
+    `<button class="list-chip ${l.id===currentListId?'active':''}" data-id="${l.id}">${escapeHTML(l.name)}</button>`
+  ).join('')}</div>`;
+  el.insertAdjacentHTML('afterend', switcherHTML);
+  document.querySelectorAll('.list-chip').forEach(chip => {
+    chip.onclick = () => {
+      currentListId = chip.dataset.id;
+      startListener();
+    };
+  });
+}
+
+async function shareInviteLink(){
+  const url = `${window.location.origin}${window.location.pathname}?invite=${currentListId}`;
+  try{
+    await navigator.clipboard.writeText(url);
+    showBanner(`Link copiado: compártelo con quien quieras que vea esta lista. (${url})`, 'error');
+  } catch(e){
+    showBanner(`Comparte este link: ${url}`, 'error');
+  }
 }
 
 function normalize(s){
@@ -744,6 +982,22 @@ function renderDupBanner(){
 }
 
 let recsLoadedFor = null; // evita recargar recomendaciones si la lista de vistos no cambió
+let recRawPool = { movie: [], tv: [] }; // pool completo sin filtrar por género, para no re-pedir a TMDb al cambiar el filtro
+let activeGenreFilter = null;
+const DISMISS_DAYS = 60; // ~2 meses
+
+const REC_GENRES = [
+  { label: 'Acción', movie: 28, tv: 10759 },
+  { label: 'Comedia', movie: 35, tv: 35 },
+  { label: 'Drama', movie: 18, tv: 18 },
+  { label: 'Terror', movie: 27, tv: null },
+  { label: 'Ciencia ficción', movie: 878, tv: 10765 },
+  { label: 'Romance', movie: 10749, tv: null },
+  { label: 'Suspenso', movie: 53, tv: null },
+  { label: 'Animación', movie: 16, tv: 16 },
+  { label: 'Documental', movie: 99, tv: 99 },
+  { label: 'Fantasía', movie: 14, tv: 10765 }
+];
 
 async function maybeLoadRecommendations(){
   const watched = items.filter(i => i.watched && i.imdbID);
@@ -769,25 +1023,40 @@ async function tmdbFromImdb(imdbID){
   return null;
 }
 
+async function getDismissedSet(){
+  const dismissed = new Set();
+  try{
+    const cutoff = Date.now() - DISMISS_DAYS * 24 * 60 * 60 * 1000;
+    const snap = await dismissedCol().get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      const ts = d.dismissedAt && d.dismissedAt.toMillis ? d.dismissedAt.toMillis() : 0;
+      if(ts > cutoff) dismissed.add(doc.id); // sigue vigente el descarte
+    });
+  } catch(e){ /* si falla, simplemente no filtramos por descartados */ }
+  return dismissed;
+}
+
 async function loadRecommendations(watched){
   document.getElementById('recStatus').textContent = '(buscando…)';
   document.getElementById('recMovies').innerHTML = `<div class="rec-loading">Buscando películas parecidas a lo que ya viste…</div>`;
   document.getElementById('recShows').innerHTML = `<div class="rec-loading">Buscando series parecidas…</div>`;
 
-  const seedMovies = watched.filter(i => i.type === 'movie').sort((a,b) => (b.watchedAt?.seconds||0) - (a.watchedAt?.seconds||0)).slice(0, 4);
-  const seedShows = watched.filter(i => i.type === 'show').sort((a,b) => (b.watchedAt?.seconds||0) - (a.watchedAt?.seconds||0)).slice(0, 4);
+  const seedMovies = watched.filter(i => i.type === 'movie').sort((a,b) => (b.watchedAt?.seconds||0) - (a.watchedAt?.seconds||0)).slice(0, 6);
+  const seedShows = watched.filter(i => i.type === 'show').sort((a,b) => (b.watchedAt?.seconds||0) - (a.watchedAt?.seconds||0)).slice(0, 6);
 
   const existingTitles = new Set(items.map(i => normalize(i.t)));
+  const dismissed = await getDismissedSet();
 
-  const moviePool = await buildRecPool(seedMovies, 'movie', existingTitles);
-  const showPool = await buildRecPool(seedShows, 'tv', existingTitles);
+  recRawPool.movie = await buildRecPool(seedMovies, 'movie', existingTitles, dismissed);
+  recRawPool.tv = await buildRecPool(seedShows, 'tv', existingTitles, dismissed);
 
   document.getElementById('recStatus').textContent = '';
-  renderRecRow('recMovies', moviePool, 'movie', 'No encontré recomendaciones de películas nuevas por ahora.');
-  renderRecRow('recShows', showPool, 'tv', 'No encontré recomendaciones de series nuevas por ahora.');
+  renderGenreFilter();
+  applyGenreFilterAndRender();
 }
 
-async function buildRecPool(seedItems, mediaType, existingTitles){
+async function buildRecPool(seedItems, mediaType, existingTitles, dismissed){
   const pool = new Map();
   for(const seed of seedItems){
     const found = await tmdbFromImdb(seed.imdbID);
@@ -799,14 +1068,44 @@ async function buildRecPool(seedItems, mediaType, existingTitles){
         const title = r.title || r.name || '';
         if(!title) return;
         if(existingTitles.has(normalize(title))) return; // ya está en la lista (vista o pendiente)
+        if(dismissed.has(`${mediaType}_${r.id}`)) return; // descartada hace menos de 2 meses
         if(!pool.has(r.id)) pool.set(r.id, r);
       });
     } catch(e){ /* seguir con el próximo seed */ }
   }
   return [...pool.values()]
     .filter(r => (r.vote_count || 0) >= 20)
-    .sort((a,b) => (b.vote_average||0) - (a.vote_average||0))
-    .slice(0, 5);
+    .sort((a,b) => (b.vote_average||0) - (a.vote_average||0));
+}
+
+function renderGenreFilter(){
+  const box = document.getElementById('recGenreFilter');
+  const available = REC_GENRES.filter(g =>
+    recRawPool.movie.some(r => g.movie && (r.genre_ids||[]).includes(g.movie)) ||
+    recRawPool.tv.some(r => g.tv && (r.genre_ids||[]).includes(g.tv))
+  );
+  if(!available.length){ box.innerHTML = ''; return; }
+  box.innerHTML = `<button class="rec-genre-chip ${!activeGenreFilter ? 'active' : ''}" data-genre="">Todo</button>` +
+    available.map(g => `<button class="rec-genre-chip ${activeGenreFilter===g.label ? 'active':''}" data-genre="${escapeHTML(g.label)}">${escapeHTML(g.label)}</button>`).join('');
+  box.querySelectorAll('.rec-genre-chip').forEach(chip => {
+    chip.onclick = () => {
+      activeGenreFilter = chip.dataset.genre || null;
+      renderGenreFilter();
+      applyGenreFilterAndRender();
+    };
+  });
+}
+
+function applyGenreFilterAndRender(){
+  let movies = recRawPool.movie;
+  let shows = recRawPool.tv;
+  if(activeGenreFilter){
+    const g = REC_GENRES.find(x => x.label === activeGenreFilter);
+    movies = g && g.movie ? movies.filter(r => (r.genre_ids||[]).includes(g.movie)) : [];
+    shows = g && g.tv ? shows.filter(r => (r.genre_ids||[]).includes(g.tv)) : [];
+  }
+  renderRecRow('recMovies', movies.slice(0, 20), 'movie', 'No encontré recomendaciones de películas nuevas por ahora.');
+  renderRecRow('recShows', shows.slice(0, 20), 'tv', 'No encontré recomendaciones de series nuevas por ahora.');
 }
 
 function renderRecRow(containerId, pool, mediaType, emptyMsg){
@@ -820,6 +1119,7 @@ function renderRecRow(containerId, pool, mediaType, emptyMsg){
     return `
       <div class="rec-card" data-id="${r.id}" data-media="${mediaType}" data-title="${escapeHTML(title)}">
         ${poster ? `<img src="${escapeHTML(poster)}" alt="">` : `<div style="width:100%;height:170px;background:var(--bg);"></div>`}
+        <button class="rec-dismiss" title="No me interesa">✕</button>
         <button class="rec-add" title="Agregar a mi lista">+</button>
         <div class="rec-info">
           <div class="rec-title">${escapeHTML(title)}</div>
@@ -837,7 +1137,22 @@ function renderRecRow(containerId, pool, mediaType, emptyMsg){
       btn.textContent = '✓';
       btn.classList.add('added');
     };
+    card.querySelector('.rec-dismiss').onclick = async () => {
+      const id = card.dataset.id, media = card.dataset.media;
+      card.style.opacity = '0.3'; card.style.pointerEvents = 'none';
+      await dismissRecommendation(id, media);
+      recRawPool[media] = recRawPool[media].filter(r => String(r.id) !== String(id));
+      applyGenreFilterAndRender();
+    };
   });
+}
+
+async function dismissRecommendation(tmdbId, mediaType){
+  try{
+    await dismissedCol().doc(`${mediaType}_${tmdbId}`).set({
+      dismissedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e){ /* si falla, simplemente puede volver a aparecer */ }
 }
 
 async function quickAddRecommendation(tmdbId, mediaType, title){
@@ -869,7 +1184,7 @@ async function quickAddRecommendation(tmdbId, mediaType, title){
   } catch(e){ /* guardamos igual con lo que se haya obtenido */ }
 
   try{
-    await db.collection(COLLECTION).add({
+    await itemsCol().add({
       t: title, type, platform: platformNames.slice(0,3).join(', '),
       watched: false, imdbRating: rating, actors, poster, imdbID, genre, plot: spanishOverview,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -931,7 +1246,7 @@ async function toggleWatched(id){
   if(!item) return;
   const nowWatched = !item.watched;
   try{
-    await db.collection(COLLECTION).doc(id).update({
+    await itemsCol().doc(id).update({
       watched: nowWatched,
       watchedAt: nowWatched ? firebase.firestore.FieldValue.serverTimestamp() : null
     });
@@ -942,7 +1257,7 @@ async function toggleWatched(id){
 
 async function deleteItem(id){
   try{
-    await db.collection(COLLECTION).doc(id).delete();
+    await itemsCol().doc(id).delete();
   } catch(e){
     showBanner('No se pudo eliminar. Intenta de nuevo.', 'error');
   }
@@ -1234,9 +1549,9 @@ async function saveModal(){
 
   try{
     if(editingId){
-      await db.collection(COLLECTION).doc(editingId).update({ t, type: modalType, platform, ...extra });
+      await itemsCol().doc(editingId).update({ t, type: modalType, platform, ...extra });
     } else {
-      await db.collection(COLLECTION).add({
+      await itemsCol().add({
         t, type: modalType, platform, watched: false, ...extra,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -1299,5 +1614,7 @@ document.getElementById('sortSelect').addEventListener('change', (e) => {
 
 init();
 </script>
+  </div>
+
 </body>
 </html>
