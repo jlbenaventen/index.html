@@ -1104,6 +1104,22 @@ async function buildRecPool(seedItems, mediaType, existingTitles, dismissed){
       });
     } catch(e){ /* seguir con el próximo seed */ }
   }
+
+  // Mezclar con contenido popular en general, para no quedar concentrados en un solo género
+  try{
+    for(const page of [1, 2]){
+      const res = await fetch(`https://api.themoviedb.org/3/${mediaType}/popular?api_key=${TMDB_KEY}&language=es-419&page=${page}`);
+      const data = await res.json();
+      (data.results || []).forEach(r => {
+        const title = r.title || r.name || '';
+        if(!title) return;
+        if(existingTitles.has(normalize(title))) return;
+        if(dismissed.has(`${mediaType}_${r.id}`)) return;
+        if(!pool.has(r.id)) pool.set(r.id, r);
+      });
+    }
+  } catch(e){ /* si falla, seguimos solo con las similares */ }
+
   return [...pool.values()]
     .filter(r => (r.vote_count || 0) >= 20)
     .sort((a,b) => (b.vote_average||0) - (a.vote_average||0));
@@ -1160,7 +1176,6 @@ function renderRecRow(containerId, pool, mediaType, emptyMsg){
         <div class="rec-info">
           <div class="rec-title">${escapeHTML(title)}</div>
           <div class="rec-rating">★ ${escapeHTML(rating)}</div>
-          <div style="font-family:'JetBrains Mono', monospace; font-size:0.5rem; color:#e05252;">g: ${escapeHTML(JSON.stringify(r.genre_ids || 'sin dato'))}</div>
         </div>
       </div>
     `;
