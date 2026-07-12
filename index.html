@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Cinemago</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bungee&family=Lobster&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
   :root{
     --bg: #17121f;
@@ -72,7 +72,7 @@
     font-size: 0.7rem;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    margin-top: 6px;
+    margin-top: 12px;
   }
   .live-dot{
     display:inline-flex; align-items:center; gap:5px;
@@ -214,6 +214,31 @@
   .icon-btn.del{ color: var(--red); opacity:0.7; }
   .icon-btn.edit{ display:inline-block; transform: scaleX(-1); }
   .icon-btn.trailer{ color: #e05252; font-size: 0.95rem; }
+
+  .rec-subtitle{
+    font-family:'JetBrains Mono', monospace; font-size:0.65rem; letter-spacing:1px;
+    text-transform:uppercase; color: var(--muted); margin: 14px 0 8px;
+  }
+  .rec-row{ display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none; }
+  .rec-row::-webkit-scrollbar{ display:none; }
+  .rec-card{
+    flex-shrink:0; width: 118px; background: var(--card); border:1px solid var(--line);
+    border-radius:10px; overflow:hidden; position:relative;
+  }
+  .rec-card img{ width:100%; height:170px; object-fit:cover; display:block; background: var(--bg); }
+  .rec-card .rec-info{ padding: 7px 8px 9px; }
+  .rec-card .rec-title{ font-size:0.72rem; color: var(--cream); line-height:1.25; max-height:2.5em; overflow:hidden; }
+  .rec-card .rec-rating{ font-family:'JetBrains Mono', monospace; font-size:0.62rem; color: var(--gold); margin-top:4px; }
+  .rec-card .rec-add{
+    position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%;
+    background: rgba(23,18,31,0.85); border: 1px solid var(--gold); color: var(--gold);
+    font-size:1rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .rec-card .rec-add.added{ background: var(--green); border-color: var(--green); color:#0b1f14; }
+  .rec-loading{
+    font-family:'JetBrains Mono', monospace; font-size:0.72rem; color: var(--muted);
+    padding: 10px 4px;
+  }
 
   .empty-msg{
     font-family:'JetBrains Mono', monospace; color: var(--muted); font-size: 0.8rem;
@@ -391,6 +416,13 @@
       <h2>Series &amp; Miniseries <small id="showCount"></small></h2>
       <div class="stack" id="showGrid"></div>
     </div>
+    <div class="section" id="recSection" style="display:none;">
+      <h2>✨ Recomendadas para ti <small id="recStatus"></small></h2>
+      <div class="rec-subtitle" id="recSubtitle">Películas</div>
+      <div class="rec-row" id="recMovies"></div>
+      <div class="rec-subtitle" id="recSubtitleShows">Series</div>
+      <div class="rec-row" id="recShows"></div>
+    </div>
   </div>
 
   <button class="fab" id="openAdd">+</button>
@@ -504,6 +536,22 @@ function escapeHTML(s){
 function formatDate(ts){
   if(!ts || typeof ts.toDate !== 'function') return '';
   return ts.toDate().toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+const MAIN_PLATFORMS = [
+  { key: 'netflix', label: 'Netflix' },
+  { key: 'apple tv', label: 'Apple TV+' },
+  { key: 'disney', label: 'Disney+' },
+  { key: 'hbo', label: 'HBO Max' },
+  { key: 'paramount', label: 'Paramount+' }
+];
+function filterMainPlatforms(names){
+  const matched = new Set();
+  names.forEach(name => {
+    const lower = name.toLowerCase();
+    MAIN_PLATFORMS.forEach(p => { if(lower.includes(p.key)) matched.add(p.label); });
+  });
+  return [...matched];
 }
 
 const GENRE_ES = {
@@ -673,6 +721,7 @@ function render(){
 
   attachCardEvents();
   renderDupBanner();
+  maybeLoadRecommendations();
 }
 
 function findDuplicateGroups(){
@@ -692,6 +741,142 @@ function renderDupBanner(){
   const count = groups.length;
   box.innerHTML = `<span class="dup-banner-link" id="dupBannerBtn">⚠️ ${count} posible${count>1?'s':''} duplicado${count>1?'s':''} — revisar</span>`;
   document.getElementById('dupBannerBtn').onclick = openDupModal;
+}
+
+let recsLoadedFor = null; // evita recargar recomendaciones si la lista de vistos no cambió
+
+async function maybeLoadRecommendations(){
+  const watched = items.filter(i => i.watched && i.imdbID);
+  const section = document.getElementById('recSection');
+  if(watched.length < 2){
+    section.style.display = 'none';
+    return;
+  }
+  const signature = watched.map(i => i.id).sort().join(',');
+  if(signature === recsLoadedFor) return; // ya cargadas para este mismo conjunto de vistos
+  recsLoadedFor = signature;
+  section.style.display = 'block';
+  await loadRecommendations(watched);
+}
+
+async function tmdbFromImdb(imdbID){
+  try{
+    const res = await fetch(`https://api.themoviedb.org/3/find/${imdbID}?api_key=${TMDB_KEY}&external_source=imdb_id`);
+    const data = await res.json();
+    if(data.movie_results && data.movie_results.length) return { id: data.movie_results[0].id, mediaType: 'movie' };
+    if(data.tv_results && data.tv_results.length) return { id: data.tv_results[0].id, mediaType: 'tv' };
+  } catch(e){ /* ignorar */ }
+  return null;
+}
+
+async function loadRecommendations(watched){
+  document.getElementById('recStatus').textContent = '(buscando…)';
+  document.getElementById('recMovies').innerHTML = `<div class="rec-loading">Buscando películas parecidas a lo que ya viste…</div>`;
+  document.getElementById('recShows').innerHTML = `<div class="rec-loading">Buscando series parecidas…</div>`;
+
+  const seedMovies = watched.filter(i => i.type === 'movie').sort((a,b) => (b.watchedAt?.seconds||0) - (a.watchedAt?.seconds||0)).slice(0, 4);
+  const seedShows = watched.filter(i => i.type === 'show').sort((a,b) => (b.watchedAt?.seconds||0) - (a.watchedAt?.seconds||0)).slice(0, 4);
+
+  const existingTitles = new Set(items.map(i => normalize(i.t)));
+
+  const moviePool = await buildRecPool(seedMovies, 'movie', existingTitles);
+  const showPool = await buildRecPool(seedShows, 'tv', existingTitles);
+
+  document.getElementById('recStatus').textContent = '';
+  renderRecRow('recMovies', moviePool, 'movie', 'No encontré recomendaciones de películas nuevas por ahora.');
+  renderRecRow('recShows', showPool, 'tv', 'No encontré recomendaciones de series nuevas por ahora.');
+}
+
+async function buildRecPool(seedItems, mediaType, existingTitles){
+  const pool = new Map();
+  for(const seed of seedItems){
+    const found = await tmdbFromImdb(seed.imdbID);
+    if(!found || found.mediaType !== mediaType) continue;
+    try{
+      const res = await fetch(`https://api.themoviedb.org/3/${mediaType}/${found.id}/recommendations?api_key=${TMDB_KEY}&language=es-419`);
+      const data = await res.json();
+      (data.results || []).forEach(r => {
+        const title = r.title || r.name || '';
+        if(!title) return;
+        if(existingTitles.has(normalize(title))) return; // ya está en la lista (vista o pendiente)
+        if(!pool.has(r.id)) pool.set(r.id, r);
+      });
+    } catch(e){ /* seguir con el próximo seed */ }
+  }
+  return [...pool.values()]
+    .filter(r => (r.vote_count || 0) >= 20)
+    .sort((a,b) => (b.vote_average||0) - (a.vote_average||0))
+    .slice(0, 5);
+}
+
+function renderRecRow(containerId, pool, mediaType, emptyMsg){
+  const el = document.getElementById(containerId);
+  if(!pool.length){ el.innerHTML = `<div class="rec-loading">${escapeHTML(emptyMsg)}</div>`; return; }
+  el.innerHTML = pool.map(r => {
+    const title = r.title || r.name || '';
+    const poster = r.poster_path ? `${TMDB_IMG.replace('w92','w185')}${r.poster_path}` : '';
+    const rating = r.vote_average ? r.vote_average.toFixed(1) : '—';
+    suggestionOverviews[r.id] = r.overview || '';
+    return `
+      <div class="rec-card" data-id="${r.id}" data-media="${mediaType}" data-title="${escapeHTML(title)}">
+        ${poster ? `<img src="${escapeHTML(poster)}" alt="">` : `<div style="width:100%;height:170px;background:var(--bg);"></div>`}
+        <button class="rec-add" title="Agregar a mi lista">+</button>
+        <div class="rec-info">
+          <div class="rec-title">${escapeHTML(title)}</div>
+          <div class="rec-rating">★ ${escapeHTML(rating)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  el.querySelectorAll('.rec-card').forEach(card => {
+    card.querySelector('.rec-add').onclick = async (e) => {
+      const btn = e.currentTarget;
+      if(btn.classList.contains('added')) return;
+      btn.textContent = '…';
+      await quickAddRecommendation(card.dataset.id, card.dataset.media, card.dataset.title);
+      btn.textContent = '✓';
+      btn.classList.add('added');
+    };
+  });
+}
+
+async function quickAddRecommendation(tmdbId, mediaType, title){
+  const type = mediaType === 'tv' ? 'show' : 'movie';
+  const spanishOverview = suggestionOverviews[tmdbId] || '';
+  let imdbID = '', rating = '', actors = '', genre = '', poster = '', platformNames = [];
+  try{
+    const extRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/external_ids?api_key=${TMDB_KEY}`);
+    const extData = await extRes.json();
+    imdbID = extData.imdb_id || '';
+
+    try{
+      const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
+      const provData = await provRes.json();
+      const cl = provData.results && provData.results.CL;
+      if(cl && cl.flatrate){ platformNames = filterMainPlatforms(cl.flatrate.map(p => p.provider_name)); }
+    } catch(e2){ /* no bloquea */ }
+
+    if(imdbID){
+      const res = await fetch(`https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${encodeURIComponent(imdbID)}`);
+      const data = await res.json();
+      if(data.Response !== 'False'){
+        rating = data.imdbRating && data.imdbRating !== 'N/A' ? data.imdbRating : '';
+        actors = data.Actors && data.Actors !== 'N/A' ? data.Actors : '';
+        genre = data.Genre && data.Genre !== 'N/A' ? data.Genre : '';
+        poster = data.Poster && data.Poster !== 'N/A' ? data.Poster : '';
+      }
+    }
+  } catch(e){ /* guardamos igual con lo que se haya obtenido */ }
+
+  try{
+    await db.collection(COLLECTION).add({
+      t: title, type, platform: platformNames.slice(0,3).join(', '),
+      watched: false, imdbRating: rating, actors, poster, imdbID, genre, plot: spanishOverview,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e){
+    showBanner('No se pudo agregar la recomendación. Intenta de nuevo.', 'error');
+  }
 }
 
 function openDupModal(){
@@ -877,29 +1062,30 @@ async function fetchSuggestions(query){
   const box = document.getElementById('titleSuggestions');
   box.innerHTML = `<div class="suggestion-loading">Buscando…</div>`;
   box.classList.add('open');
-  const tmdbType = modalType === 'show' ? 'tv' : 'movie';
   try{
-    const res = await fetch(`https://api.themoviedb.org/3/search/${tmdbType}?api_key=${TMDB_KEY}&language=es-419&query=${encodeURIComponent(query)}`);
+    const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&language=es-419&query=${encodeURIComponent(query)}`);
     const data = await res.json();
     if(data.success === false || data.status_code){
       box.innerHTML = `<div class="suggestion-loading">Error de TMDb: ${escapeHTML(data.status_message || 'clave inválida o sin activar')} (código ${escapeHTML(String(data.status_code || res.status))})</div>`;
       return;
     }
-    if(!data.results || !data.results.length){
+    const results = (data.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+    if(!results.length){
       box.innerHTML = `<div class="suggestion-loading">Sin resultados. Puedes escribir el título tal cual y buscar manual abajo.</div>`;
       return;
     }
-    box.innerHTML = data.results.slice(0, 8).map(item => {
+    box.innerHTML = results.slice(0, 8).map(item => {
       const title = item.title || item.name || '';
       const year = (item.release_date || item.first_air_date || '').slice(0,4);
       const poster = item.poster_path ? `${TMDB_IMG}${item.poster_path}` : '';
+      const typeLabel = item.media_type === 'tv' ? 'Serie' : 'Película';
       suggestionOverviews[item.id] = item.overview || '';
       return `
-      <div class="suggestion-item" data-id="${item.id}" data-media="${tmdbType}" data-title="${escapeHTML(title)}">
+      <div class="suggestion-item" data-id="${item.id}" data-media="${item.media_type}" data-title="${escapeHTML(title)}">
         ${poster ? `<img src="${escapeHTML(poster)}" alt="">` : '<div style="width:30px;height:44px;flex-shrink:0;"></div>'}
         <div class="s-info">
           <div class="s-title">${escapeHTML(title)}</div>
-          <div class="s-year">${escapeHTML(year)}</div>
+          <div class="s-year">${escapeHTML(year)} · ${typeLabel}</div>
         </div>
       </div>
     `;}).join('');
@@ -921,6 +1107,7 @@ async function selectSuggestion(tmdbId, mediaType, title){
   closeSuggestions();
   document.getElementById('fTitle').value = title;
   document.getElementById('fImdbQuery').value = title;
+  setModalType(mediaType === 'tv' ? 'show' : 'movie');
   checkDuplicate(title);
   renderImdbPreview(null, 'Cargando datos…');
   const spanishOverview = suggestionOverviews[tmdbId] || '';
@@ -936,7 +1123,7 @@ async function selectSuggestion(tmdbId, mediaType, title){
       const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
       const provData = await provRes.json();
       const cl = provData.results && provData.results.CL;
-      if(cl && cl.flatrate){ platformNames = cl.flatrate.map(p => p.provider_name); }
+      if(cl && cl.flatrate){ platformNames = filterMainPlatforms(cl.flatrate.map(p => p.provider_name)); }
     } catch(e2){ /* no bloquea si falla */ }
 
     if(platformNames.length){
