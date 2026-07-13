@@ -722,21 +722,6 @@ function translateGenres(genreStr){
   return genreStr.split(',').map(g => g.trim()).filter(Boolean).map(g => GENRE_ES[g] || g);
 }
 
-const KNOWN_LEGACY_COLLECTIONS = ['cinemago_items', 'cinemago_items_felipe', 'cinemago_items_tata1'];
-async function lockKnownLegacyCollections(){
-  // Estas colecciones ya fueron migradas antes de que existiera este mecanismo de reclamo.
-  // Las bloqueamos retroactivamente para que ningún usuario nuevo pueda heredar esos datos por error.
-  for(const name of KNOWN_LEGACY_COLLECTIONS){
-    try{
-      const flagRef = db.collection('cinemago_meta').doc(name);
-      const snap = await flagRef.get();
-      if(!snap.exists){
-        await flagRef.set({ claimedAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: 'legacy-lock' });
-      }
-    } catch(e){ /* no bloquea el resto de la carga si esto falla */ }
-  }
-}
-
 async function init(){
   try{
     app = firebase.initializeApp(firebaseConfig);
@@ -769,7 +754,6 @@ async function init(){
     document.getElementById('loadingMsg').style.display = 'block';
     document.getElementById('content').style.display = 'none';
     renderAccountRow();
-    await lockKnownLegacyCollections();
     await resolveUserList();
   });
 }
@@ -803,33 +787,16 @@ async function resolveUserList(){
     return;
   }
 
-  // 3. Sin listas: ¿viene de un link antiguo (?lista=) para importar?
-  if(LEGACY_LIST_PARAM){
-    document.getElementById('loadingMsg').innerHTML = `Migrando tu lista anterior ("${escapeHTML(LEGACY_LIST_PARAM)}")…`;
-    await createListForUser(`Lista de ${LEGACY_LIST_PARAM}`, `cinemago_items_${LEGACY_LIST_PARAM}`);
-  } else {
-    document.getElementById('loadingMsg').innerHTML = 'Preparando tu lista…';
-    await createListForUser('Mi lista', 'cinemago_items');
-  }
+  // 3. Usuario sin listas: se le crea una lista nueva, vacía, con títulos de ejemplo.
+  // (Ya no se migra ninguna colección antigua automáticamente para nadie, para evitar
+  // que alguien nuevo herede por error los datos de otra persona.)
+  document.getElementById('loadingMsg').innerHTML = 'Preparando tu lista…';
+  await createListForUser('Mi lista');
   await loadMyLists();
   startListener();
 }
 
-async function claimLegacyCollectionOnce(legacyCollectionName){
-  // Evita que una colección antigua (con datos privados de otra persona) se le copie a
-  // cualquier usuario nuevo que llegue sin invitación: solo el primero que la reclama la migra.
-  const flagRef = db.collection('cinemago_meta').doc(legacyCollectionName);
-  try{
-    const flagSnap = await flagRef.get();
-    if(flagSnap.exists) return false; // ya fue reclamada por otra persona antes
-    await flagRef.set({ claimedAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: currentUser.uid });
-    return true;
-  } catch(e){
-    return false; // si algo falla, no migramos por seguridad
-  }
-}
-
-async function createListForUser(name, legacyCollectionName){
+async function createListForUser(name){
   const uid = currentUser.uid;
   const listRef = db.collection('cinemago_lists').doc();
   await listRef.set({
@@ -838,33 +805,12 @@ async function createListForUser(name, legacyCollectionName){
   });
   currentListId = listRef.id;
 
-  // Intentar migrar datos de la colección antigua, pero solo si nadie más la reclamó ya
-  let migrated = false;
-  const canClaim = await claimLegacyCollectionOnce(legacyCollectionName);
-  if(canClaim){
-    try{
-      const legacySnap = await db.collection(legacyCollectionName).get();
-      if(!legacySnap.empty){
-        const batch = db.batch();
-        legacySnap.forEach(doc => {
-          const ref = itemsCol().doc();
-          batch.set(ref, doc.data());
-        });
-        await batch.commit();
-        migrated = true;
-      }
-    } catch(e){ /* si falla la migración, seguimos igual */ }
-  }
-
-  // Si no había nada que migrar (usuario nuevo de verdad, o la colección ya fue reclamada por otra persona), sembramos la lista inicial
-  if(!migrated){
-    const batch = db.batch();
-    seedData.forEach(d => {
-      const ref = itemsCol().doc();
-      batch.set(ref, {...d, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-    });
-    await batch.commit();
-  }
+  const batch = db.batch();
+  seedData.forEach(d => {
+    const ref = itemsCol().doc();
+    batch.set(ref, {...d, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+  });
+  await batch.commit();
 }
 
 async function loadMyLists(){
@@ -1165,15 +1111,38 @@ async function loadRecommendations(watched){
   const existingTitles = new Set(items.map(i => normalize(i.t)));
   const dismissed = await getDismissedSet();
 
-  recRawPool.movie = await buildRecPool(seedMovies, 'movie', existingTitles, dismissed);
-  recRawPool.tv = await buildRecPool(seedShows, 'tv', existingTitles, dismissed);
+  document.getElementById('recMovies').innerHTML = `<div class="rec-loading">Revisando disponibilidad en Chile…</div>`;
+  recRawPool.movie = await buildRecPool(seedMovies, 'movie', existingTitles, dismissed,
+    (n) => { document.getElementById('recStatus').textContent = `(revisando películas en Chile… ${n})`; });
+
+  document.getElementById('recShows').innerHTML = `<div class="rec-loading">Revisando disponibilidad en Chile…</div>`;
+  recRawPool.tv = await buildRecPool(seedShows, 'tv', existingTitles, dismissed,
+    (n) => { document.getElementById('recStatus').textContent = `(revisando series en Chile… ${n})`; });
 
   document.getElementById('recStatus').textContent = '';
   renderGenreFilter();
   applyGenreFilterAndRender();
 }
 
-async function buildRecPool(seedItems, mediaType, existingTitles, dismissed){
+const recPlatformCache = {}; // `${mediaType}_${id}` -> string de plataforma, para no volver a consultar al agregar
+
+async function checkChileAvailability(mediaType, id){
+  const cacheKey = `${mediaType}_${id}`;
+  if(cacheKey in recPlatformCache) return recPlatformCache[cacheKey];
+  try{
+    const res = await fetch(`https://api.themoviedb.org/3/${mediaType}/${id}/watch/providers?api_key=${TMDB_KEY}`);
+    const data = await res.json();
+    const cl = data.results && data.results.CL;
+    const platformStr = resolvePlatformString(cl);
+    recPlatformCache[cacheKey] = platformStr;
+    return platformStr;
+  } catch(e){
+    recPlatformCache[cacheKey] = '';
+    return '';
+  }
+}
+
+async function buildRecPool(seedItems, mediaType, existingTitles, dismissed, onProgress){
   const pool = new Map();
   for(const seed of seedItems){
     const found = await tmdbFromImdb(seed.imdbID);
@@ -1193,7 +1162,7 @@ async function buildRecPool(seedItems, mediaType, existingTitles, dismissed){
 
   // Mezclar con contenido popular en general, para no quedar concentrados en un solo género
   try{
-    for(const page of [1, 2]){
+    for(const page of [1, 2, 3]){
       const res = await fetch(`https://api.themoviedb.org/3/${mediaType}/popular?api_key=${TMDB_KEY}&language=es-419&page=${page}`);
       const data = await res.json();
       (data.results || []).forEach(r => {
@@ -1206,9 +1175,26 @@ async function buildRecPool(seedItems, mediaType, existingTitles, dismissed){
     }
   } catch(e){ /* si falla, seguimos solo con las similares */ }
 
-  return [...pool.values()]
+  const candidates = [...pool.values()]
     .filter(r => (r.vote_count || 0) >= 20)
     .sort((a,b) => (b.vote_average||0) - (a.vote_average||0));
+
+  // Revisamos disponibilidad en Chile en orden, deteniéndonos al juntar suficientes
+  // (o tras revisar un máximo, para no demorar de más ni gastar consultas de sobra)
+  const TARGET = 20, MAX_CHECKS = 45;
+  const available = [];
+  let checked = 0;
+  for(const r of candidates){
+    if(available.length >= TARGET || checked >= MAX_CHECKS) break;
+    checked++;
+    if(onProgress) onProgress(checked);
+    const platformStr = await checkChileAvailability(mediaType, r.id);
+    if(platformStr){
+      r._platformStr = platformStr;
+      available.push(r);
+    }
+  }
+  return available;
 }
 
 function renderGenreFilter(){
@@ -1309,10 +1295,15 @@ async function quickAddRecommendation(tmdbId, mediaType, title){
     imdbID = extData.imdb_id || '';
 
     try{
-      const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
-      const provData = await provRes.json();
-      const cl = provData.results && provData.results.CL;
-      platformStr = resolvePlatformString(cl);
+      const cacheKey = `${mediaType}_${tmdbId}`;
+      if(cacheKey in recPlatformCache){
+        platformStr = recPlatformCache[cacheKey];
+      } else {
+        const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
+        const provData = await provRes.json();
+        const cl = provData.results && provData.results.CL;
+        platformStr = resolvePlatformString(cl);
+      }
     } catch(e2){ /* no bloquea */ }
 
     if(imdbID){
