@@ -676,6 +676,20 @@ function cleanPlatformName(name){
   return stripped;
 }
 
+function resolvePlatformNames(cl){
+  if(!cl) return [];
+  if(cl.flatrate && cl.flatrate.length){
+    return filterMainPlatforms(cl.flatrate.map(p => p.provider_name));
+  }
+  if(cl.rent && cl.rent.length){
+    return filterMainPlatforms(cl.rent.map(p => p.provider_name)).map(n => `Alquiler: ${n}`);
+  }
+  if(cl.buy && cl.buy.length){
+    return filterMainPlatforms(cl.buy.map(p => p.provider_name)).map(n => `Compra: ${n}`);
+  }
+  return [];
+}
+
 function filterMainPlatforms(names){
   const seen = new Set();
   const result = [];
@@ -1253,7 +1267,7 @@ async function quickAddRecommendation(tmdbId, mediaType, title){
       const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
       const provData = await provRes.json();
       const cl = provData.results && provData.results.CL;
-      if(cl && cl.flatrate){ platformNames = filterMainPlatforms(cl.flatrate.map(p => p.provider_name)); }
+      platformNames = resolvePlatformNames(cl);
     } catch(e2){ /* no bloquea */ }
 
     if(imdbID){
@@ -1526,7 +1540,7 @@ async function selectSuggestion(tmdbId, mediaType, title){
       const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
       const provData = await provRes.json();
       const cl = provData.results && provData.results.CL;
-      if(cl && cl.flatrate){ platformNames = filterMainPlatforms(cl.flatrate.map(p => p.provider_name)); }
+      platformNames = resolvePlatformNames(cl);
     } catch(e2){ /* no bloquea si falla */ }
 
     if(platformNames.length){
