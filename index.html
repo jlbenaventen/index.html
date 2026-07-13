@@ -267,6 +267,8 @@
   }
   .row-btns{ display:flex; gap:4px; flex-shrink:0; margin-left:auto; }
   .platform.empty{ color: var(--muted); border-color: var(--line); background:none; }
+  .platform-block{ display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
+  .platform-date-line{ font-family:'JetBrains Mono', monospace; font-size:0.58rem; color: var(--muted); padding-left:2px; }
   .icon-btn{
     background: none; border: none; cursor:pointer; color: var(--muted);
     font-size: 1.15rem; padding: 6px 8px; line-height:1;
@@ -958,6 +960,9 @@ function cardHTML(item){
   const platformHTML = item.platform
     ? `<span class="platform">${escapeHTML(item.platform)}</span>`
     : `<span class="platform empty">sin definir</span>`;
+  const platformDateHTML = platformCheckedStr
+    ? `<div class="platform-date-line">act. ${escapeHTML(platformCheckedStr)}</div>`
+    : '';
   const ratingHTML = item.imdbRating
     ? (item.imdbID
         ? `<a class="imdb-badge" href="https://www.imdb.com/title/${escapeHTML(item.imdbID)}/" target="_blank" rel="noopener">★ ${escapeHTML(item.imdbRating)}</a>`
@@ -971,11 +976,9 @@ function cardHTML(item){
     : '';
   const addedDate = formatDate(item.createdAt);
   const watchedDate = formatDate(item.watchedAt);
-  const dateParts = [];
-  if(addedDate) dateParts.push(`Agregada ${addedDate}`);
-  if(watchedDate) dateParts.push(`Vista ${watchedDate}`);
-  if(platformCheckedStr) dateParts.push(`Plataforma act. ${platformCheckedStr}`);
-  const datesHTML = dateParts.length ? `<div class="dates-line">${dateParts.join(' · ')}</div>` : '';
+  const datesHTML = (addedDate || watchedDate)
+    ? `<div class="dates-line">${addedDate ? `Agregada ${addedDate}` : ''}${addedDate && watchedDate ? ' · ' : ''}${watchedDate ? `Vista ${watchedDate}` : ''}</div>`
+    : '';
   const genreHTML = item.genre
     ? `<div class="genre-chips">${translateGenres(item.genre).map(g => `<span class="genre-chip">${escapeHTML(g)}</span>`).join('')}</div>`
     : '';
@@ -997,7 +1000,10 @@ function cardHTML(item){
       </div>
       <div class="perf"></div>
       <div class="ticket-bottom">
-        ${platformHTML}
+        <div class="platform-block">
+          ${platformHTML}
+          ${platformDateHTML}
+        </div>
         <div class="row-btns">
           <button class="icon-btn trailer" title="Ver tráiler">▶</button>
           <button class="icon-btn toggle" title="Marcar">${item.watched ? '↺' : '✓'}</button>
