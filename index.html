@@ -679,18 +679,20 @@ function cleanPlatformName(name){
   return stripped;
 }
 
-function resolvePlatformNames(cl){
-  if(!cl) return [];
+function resolvePlatformString(cl){
+  if(!cl) return '';
   if(cl.flatrate && cl.flatrate.length){
-    return filterMainPlatforms(cl.flatrate.map(p => p.provider_name));
+    return filterMainPlatforms(cl.flatrate.map(p => p.provider_name)).join(', ');
   }
   if(cl.rent && cl.rent.length){
-    return filterMainPlatforms(cl.rent.map(p => p.provider_name)).map(n => `Alquiler: ${n}`);
+    const names = filterMainPlatforms(cl.rent.map(p => p.provider_name));
+    return names.length ? `Alquiler: ${names.join(', ')}` : '';
   }
   if(cl.buy && cl.buy.length){
-    return filterMainPlatforms(cl.buy.map(p => p.provider_name)).map(n => `Compra: ${n}`);
+    const names = filterMainPlatforms(cl.buy.map(p => p.provider_name));
+    return names.length ? `Compra: ${names.join(', ')}` : '';
   }
-  return [];
+  return '';
 }
 
 function filterMainPlatforms(names){
@@ -1293,7 +1295,7 @@ async function dismissRecommendation(tmdbId, mediaType){
 async function quickAddRecommendation(tmdbId, mediaType, title){
   const type = mediaType === 'tv' ? 'show' : 'movie';
   const spanishOverview = suggestionOverviews[tmdbId] || '';
-  let imdbID = '', rating = '', actors = '', genre = '', poster = '', platformNames = [];
+  let imdbID = '', rating = '', actors = '', genre = '', poster = '', platformStr = '';
   try{
     const extRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/external_ids?api_key=${TMDB_KEY}`);
     const extData = await extRes.json();
@@ -1303,7 +1305,7 @@ async function quickAddRecommendation(tmdbId, mediaType, title){
       const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
       const provData = await provRes.json();
       const cl = provData.results && provData.results.CL;
-      platformNames = resolvePlatformNames(cl);
+      platformStr = resolvePlatformString(cl);
     } catch(e2){ /* no bloquea */ }
 
     if(imdbID){
@@ -1320,9 +1322,9 @@ async function quickAddRecommendation(tmdbId, mediaType, title){
 
   try{
     await itemsCol().add({
-      t: title, type, platform: platformNames.slice(0,3).join(', '),
+      t: title, type, platform: platformStr,
       watched: false, imdbRating: rating, actors, poster, imdbID, genre, plot: spanishOverview,
-      ...(platformNames.length ? { platformCheckedAt: firebase.firestore.FieldValue.serverTimestamp() } : {}),
+      ...(platformStr ? { platformCheckedAt: firebase.firestore.FieldValue.serverTimestamp() } : {}),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch(e){
@@ -1434,8 +1436,7 @@ async function refreshPlatformFor(item){
     const provRes = await fetch(`https://api.themoviedb.org/3/${found.mediaType}/${found.id}/watch/providers?api_key=${TMDB_KEY}`);
     const provData = await provRes.json();
     const cl = provData.results && provData.results.CL;
-    const names = resolvePlatformNames(cl);
-    document.getElementById('fPlatform').value = names.join(', ');
+    document.getElementById('fPlatform').value = resolvePlatformString(cl);
     platformCheckedAt = new Date();
     btn.textContent = '✓';
     setTimeout(() => { btn.textContent = '🔄'; }, 1500);
@@ -1600,16 +1601,16 @@ async function selectSuggestion(tmdbId, mediaType, title){
     const imdbID = extData.imdb_id || '';
 
     // 2. Obtener plataformas de streaming (Chile) desde TMDb
-    let platformNames = [];
+    let platformStr = '';
     try{
       const provRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
       const provData = await provRes.json();
       const cl = provData.results && provData.results.CL;
-      platformNames = resolvePlatformNames(cl);
+      platformStr = resolvePlatformString(cl);
     } catch(e2){ /* no bloquea si falla */ }
 
-    if(platformNames.length){
-      document.getElementById('fPlatform').value = platformNames.slice(0,3).join(', ');
+    if(platformStr){
+      document.getElementById('fPlatform').value = platformStr;
       platformCheckedAt = new Date();
     }
 
