@@ -719,6 +719,21 @@ function translateGenres(genreStr){
   return genreStr.split(',').map(g => g.trim()).filter(Boolean).map(g => GENRE_ES[g] || g);
 }
 
+const KNOWN_LEGACY_COLLECTIONS = ['cinemago_items', 'cinemago_items_felipe', 'cinemago_items_tata1'];
+async function lockKnownLegacyCollections(){
+  // Estas colecciones ya fueron migradas antes de que existiera este mecanismo de reclamo.
+  // Las bloqueamos retroactivamente para que ningún usuario nuevo pueda heredar esos datos por error.
+  for(const name of KNOWN_LEGACY_COLLECTIONS){
+    try{
+      const flagRef = db.collection('cinemago_meta').doc(name);
+      const snap = await flagRef.get();
+      if(!snap.exists){
+        await flagRef.set({ claimedAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: 'legacy-lock' });
+      }
+    } catch(e){ /* no bloquea el resto de la carga si esto falla */ }
+  }
+}
+
 async function init(){
   try{
     app = firebase.initializeApp(firebaseConfig);
@@ -751,6 +766,7 @@ async function init(){
     document.getElementById('loadingMsg').style.display = 'block';
     document.getElementById('content').style.display = 'none';
     renderAccountRow();
+    await lockKnownLegacyCollections();
     await resolveUserList();
   });
 }
@@ -796,6 +812,20 @@ async function resolveUserList(){
   startListener();
 }
 
+async function claimLegacyCollectionOnce(legacyCollectionName){
+  // Evita que una colección antigua (con datos privados de otra persona) se le copie a
+  // cualquier usuario nuevo que llegue sin invitación: solo el primero que la reclama la migra.
+  const flagRef = db.collection('cinemago_meta').doc(legacyCollectionName);
+  try{
+    const flagSnap = await flagRef.get();
+    if(flagSnap.exists) return false; // ya fue reclamada por otra persona antes
+    await flagRef.set({ claimedAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: currentUser.uid });
+    return true;
+  } catch(e){
+    return false; // si algo falla, no migramos por seguridad
+  }
+}
+
 async function createListForUser(name, legacyCollectionName){
   const uid = currentUser.uid;
   const listRef = db.collection('cinemago_lists').doc();
@@ -805,22 +835,25 @@ async function createListForUser(name, legacyCollectionName){
   });
   currentListId = listRef.id;
 
-  // Intentar migrar datos de la colección antigua (si existe y tiene datos)
+  // Intentar migrar datos de la colección antigua, pero solo si nadie más la reclamó ya
   let migrated = false;
-  try{
-    const legacySnap = await db.collection(legacyCollectionName).get();
-    if(!legacySnap.empty){
-      const batch = db.batch();
-      legacySnap.forEach(doc => {
-        const ref = itemsCol().doc();
-        batch.set(ref, doc.data());
-      });
-      await batch.commit();
-      migrated = true;
-    }
-  } catch(e){ /* si falla la migración, seguimos igual */ }
+  const canClaim = await claimLegacyCollectionOnce(legacyCollectionName);
+  if(canClaim){
+    try{
+      const legacySnap = await db.collection(legacyCollectionName).get();
+      if(!legacySnap.empty){
+        const batch = db.batch();
+        legacySnap.forEach(doc => {
+          const ref = itemsCol().doc();
+          batch.set(ref, doc.data());
+        });
+        await batch.commit();
+        migrated = true;
+      }
+    } catch(e){ /* si falla la migración, seguimos igual */ }
+  }
 
-  // Si no había nada que migrar (usuario nuevo de verdad), sembramos la lista inicial
+  // Si no había nada que migrar (usuario nuevo de verdad, o la colección ya fue reclamada por otra persona), sembramos la lista inicial
   if(!migrated){
     const batch = db.batch();
     seedData.forEach(d => {
