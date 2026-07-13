@@ -267,6 +267,7 @@
   }
   .row-btns{ display:flex; gap:4px; flex-shrink:0; margin-left:auto; }
   .platform.empty{ color: var(--muted); border-color: var(--line); background:none; }
+  .platform-checked{ color: var(--muted); font-weight:400; opacity:0.85; }
   .icon-btn{
     background: none; border: none; cursor:pointer; color: var(--muted);
     font-size: 1.15rem; padding: 6px 8px; line-height:1;
@@ -592,6 +593,7 @@ const OMDB_KEY = 'ab8f3857';
 const TMDB_KEY = 'eb1e7183f7f282c635c90f756a047e7b';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
 let imdbData = null; // datos confirmados por búsqueda, pendientes de guardar
+let platformCheckedAt = null; // fecha en que se consultó la plataforma automáticamente (se invalida si se edita a mano)
 const suggestionOverviews = {}; // overview en español por id de TMDb, capturado en la búsqueda
 
 let currentUser = null;
@@ -648,21 +650,44 @@ function formatDate(ts){
   return ts.toDate().toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit', year:'numeric' });
 }
 
-const MAIN_PLATFORMS = [
-  { key: 'netflix', label: 'Netflix' },
-  { key: 'apple tv', label: 'Apple TV+' },
-  { key: 'disney', label: 'Disney+' },
-  { key: 'hbo', label: 'HBO Max' },
-  { key: 'paramount', label: 'Paramount+' },
-  { key: 'mubi', label: 'MUBI' }
+// Abreviaciones para nombres de plataforma largos o con sufijos tipo "Amazon Channel"
+const PLATFORM_ABBREV = [
+  { match: /apple tv\+?/i, label: 'Apple TV+' },
+  { match: /disney\s*\+?/i, label: 'Disney+' },
+  { match: /paramount\s*\+?/i, label: 'Paramount+' },
+  { match: /hbo max/i, label: 'HBO Max' },
+  { match: /max$/i, label: 'Max' },
+  { match: /amazon prime video/i, label: 'Prime Video' },
+  { match: /amazon video/i, label: 'Prime Video' },
+  { match: /movistar plus/i, label: 'Movistar+' },
+  { match: /claro video/i, label: 'Claro Video' },
+  { match: /star\+/i, label: 'Star+' },
+  { match: /crunchyroll/i, label: 'Crunchyroll' },
+  { match: /mubi/i, label: 'MUBI' },
+  { match: /netflix/i, label: 'Netflix' }
 ];
+
+function cleanPlatformName(name){
+  // quita sufijos tipo "X Amazon Channel" / "X Apple TV Channel" dejando solo el nombre base cuando corresponde
+  const stripped = name.replace(/\s*(amazon channel|apple tv channel)\s*$/i, '').trim();
+  for(const p of PLATFORM_ABBREV){
+    if(p.match.test(stripped)) return p.label;
+  }
+  return stripped;
+}
+
 function filterMainPlatforms(names){
-  const matched = new Set();
-  names.forEach(name => {
-    const lower = name.toLowerCase();
-    MAIN_PLATFORMS.forEach(p => { if(lower.includes(p.key)) matched.add(p.label); });
-  });
-  return [...matched];
+  const seen = new Set();
+  const result = [];
+  for(const name of names){
+    const clean = cleanPlatformName(name);
+    if(!seen.has(clean)){
+      seen.add(clean);
+      result.push(clean);
+    }
+    if(result.length >= 3) break;
+  }
+  return result;
 }
 
 const GENRE_ES = {
@@ -878,8 +903,9 @@ function matchesFilter(item){
 }
 
 function cardHTML(item){
+  const platformCheckedStr = formatDate(item.platformCheckedAt);
   const platformHTML = item.platform
-    ? `<span class="platform">${escapeHTML(item.platform)}</span>`
+    ? `<span class="platform">${escapeHTML(item.platform)}${platformCheckedStr ? ` <span class="platform-checked">· act. ${escapeHTML(platformCheckedStr)}</span>` : ''}</span>`
     : `<span class="platform empty">sin definir</span>`;
   const ratingHTML = item.imdbRating
     ? (item.imdbID
@@ -1246,6 +1272,7 @@ async function quickAddRecommendation(tmdbId, mediaType, title){
     await itemsCol().add({
       t: title, type, platform: platformNames.slice(0,3).join(', '),
       watched: false, imdbRating: rating, actors, poster, imdbID, genre, plot: spanishOverview,
+      ...(platformNames.length ? { platformCheckedAt: firebase.firestore.FieldValue.serverTimestamp() } : {}),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch(e){
@@ -1333,6 +1360,7 @@ function openEdit(id){
   delete document.getElementById('fImdbQuery').dataset.touched;
   setModalType(item.type);
   imdbData = (item.imdbRating || item.actors) ? { imdbRating: item.imdbRating || '', actors: item.actors || '', poster: item.poster || '', imdbID: item.imdbID || '', genre: item.genre || '', plot: item.plot || '' } : null;
+  platformCheckedAt = (item.platformCheckedAt && item.platformCheckedAt.toDate) ? item.platformCheckedAt.toDate() : null;
   renderImdbPreview(imdbData, imdbData ? null : '');
   document.getElementById('dupWarning').innerHTML = '';
   duplicateConfirmed = false;
@@ -1348,6 +1376,7 @@ function openAdd(){
   delete document.getElementById('fImdbQuery').dataset.touched;
   setModalType('movie');
   imdbData = null;
+  platformCheckedAt = null;
   document.getElementById('imdbResult').innerHTML = '';
   document.getElementById('dupWarning').innerHTML = '';
   duplicateConfirmed = false;
@@ -1502,6 +1531,7 @@ async function selectSuggestion(tmdbId, mediaType, title){
 
     if(platformNames.length){
       document.getElementById('fPlatform').value = platformNames.slice(0,3).join(', ');
+      platformCheckedAt = new Date();
     }
 
     if(!imdbID){
@@ -1606,12 +1636,16 @@ async function saveModal(){
     plot: imdbData.plot || ''
   } : { imdbRating: '', actors: '', poster: '', imdbID: '', genre: '', plot: '' };
 
+  // Si la plataforma se rellenó automáticamente en esta sesión, registramos cuándo se consultó.
+  // Si el usuario la editó a mano, no tocamos este campo (se mantiene lo que ya hubiera).
+  const platformExtra = platformCheckedAt ? { platformCheckedAt: firebase.firestore.FieldValue.serverTimestamp() } : {};
+
   try{
     if(editingId){
-      await itemsCol().doc(editingId).update({ t, type: modalType, platform, ...extra });
+      await itemsCol().doc(editingId).update({ t, type: modalType, platform, ...extra, ...platformExtra });
     } else {
       await itemsCol().add({
-        t, type: modalType, platform, watched: false, ...extra,
+        t, type: modalType, platform, watched: false, ...extra, ...platformExtra,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
@@ -1626,6 +1660,7 @@ document.getElementById('cancelBtn').onclick = closeModal;
 document.getElementById('saveBtn').onclick = saveModal;
 document.getElementById('imdbSearchBtn').onclick = searchImdb;
 document.getElementById('fTitle').addEventListener('input', scheduleAutoSearch);
+document.getElementById('fPlatform').addEventListener('input', () => { platformCheckedAt = null; });
 document.getElementById('fImdbQuery').addEventListener('input', () => {
   document.getElementById('fImdbQuery').dataset.touched = '1';
   clearTimeout(imdbSearchTimer);
