@@ -267,7 +267,6 @@
   }
   .row-btns{ display:flex; gap:4px; flex-shrink:0; margin-left:auto; }
   .platform.empty{ color: var(--muted); border-color: var(--line); background:none; }
-  .platform-checked{ color: var(--muted); font-weight:400; opacity:0.85; }
   .icon-btn{
     background: none; border: none; cursor:pointer; color: var(--muted);
     font-size: 1.15rem; padding: 6px 8px; line-height:1;
@@ -957,7 +956,7 @@ function matchesFilter(item){
 function cardHTML(item){
   const platformCheckedStr = formatDate(item.platformCheckedAt);
   const platformHTML = item.platform
-    ? `<span class="platform">${escapeHTML(item.platform)}${platformCheckedStr ? ` <span class="platform-checked">· act. ${escapeHTML(platformCheckedStr)}</span>` : ''}</span>`
+    ? `<span class="platform">${escapeHTML(item.platform)}</span>`
     : `<span class="platform empty">sin definir</span>`;
   const ratingHTML = item.imdbRating
     ? (item.imdbID
@@ -972,9 +971,11 @@ function cardHTML(item){
     : '';
   const addedDate = formatDate(item.createdAt);
   const watchedDate = formatDate(item.watchedAt);
-  const datesHTML = (addedDate || watchedDate)
-    ? `<div class="dates-line">${addedDate ? `Agregada ${addedDate}` : ''}${addedDate && watchedDate ? ' · ' : ''}${watchedDate ? `Vista ${watchedDate}` : ''}</div>`
-    : '';
+  const dateParts = [];
+  if(addedDate) dateParts.push(`Agregada ${addedDate}`);
+  if(watchedDate) dateParts.push(`Vista ${watchedDate}`);
+  if(platformCheckedStr) dateParts.push(`Plataforma act. ${platformCheckedStr}`);
+  const datesHTML = dateParts.length ? `<div class="dates-line">${dateParts.join(' · ')}</div>` : '';
   const genreHTML = item.genre
     ? `<div class="genre-chips">${translateGenres(item.genre).map(g => `<span class="genre-chip">${escapeHTML(g)}</span>`).join('')}</div>`
     : '';
