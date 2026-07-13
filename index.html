@@ -547,7 +547,10 @@
       </div>
       <div class="field">
         <label>Plataforma (opcional)</label>
-        <input type="text" id="fPlatform" placeholder="Netflix, Disney+, HBO...">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="fPlatform" placeholder="Netflix, Disney+, HBO...">
+          <button type="button" id="platformRefreshBtn" style="display:none; flex-shrink:0; background:var(--card); border:1px solid var(--line); color:var(--gold); border-radius:8px; padding:0 14px; font-size:1.1rem;">🔄</button>
+        </div>
       </div>
       <div class="field">
         <label>Info de IMDb (se busca sola al escribir el título)</label>
@@ -1378,7 +1381,35 @@ function openEdit(id){
   renderImdbPreview(imdbData, imdbData ? null : '');
   document.getElementById('dupWarning').innerHTML = '';
   duplicateConfirmed = false;
+  const refreshBtn = document.getElementById('platformRefreshBtn');
+  refreshBtn.style.display = item.imdbID ? 'block' : 'none';
+  refreshBtn.textContent = '🔄';
+  refreshBtn.onclick = () => refreshPlatformFor(item);
   document.getElementById('modalBg').classList.add('open');
+}
+
+async function refreshPlatformFor(item){
+  const btn = document.getElementById('platformRefreshBtn');
+  btn.textContent = '…';
+  try{
+    const found = await tmdbFromImdb(item.imdbID);
+    if(!found){
+      btn.textContent = '✕';
+      setTimeout(() => { btn.textContent = '🔄'; }, 1500);
+      return;
+    }
+    const provRes = await fetch(`https://api.themoviedb.org/3/${found.mediaType}/${found.id}/watch/providers?api_key=${TMDB_KEY}`);
+    const provData = await provRes.json();
+    const cl = provData.results && provData.results.CL;
+    const names = resolvePlatformNames(cl);
+    document.getElementById('fPlatform').value = names.join(', ');
+    platformCheckedAt = new Date();
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = '🔄'; }, 1500);
+  } catch(e){
+    btn.textContent = '✕';
+    setTimeout(() => { btn.textContent = '🔄'; }, 1500);
+  }
 }
 
 function openAdd(){
@@ -1395,6 +1426,7 @@ function openAdd(){
   document.getElementById('dupWarning').innerHTML = '';
   duplicateConfirmed = false;
   document.getElementById('saveBtn').textContent = 'Guardar';
+  document.getElementById('platformRefreshBtn').style.display = 'none';
   document.getElementById('modalBg').classList.add('open');
   setTimeout(() => document.getElementById('fTitle').focus(), 150);
 }
